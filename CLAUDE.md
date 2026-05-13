@@ -60,14 +60,18 @@ product-requirements/  PRD + spec + architecture + threat model
 - **Prompts live in `app/prompts/`** as versioned files, not inline strings. Each file has a `# version: N` header.
 - **Async by default** for I/O. Use `asyncio.gather` for fan-out (e.g., parallel provider eval).
 
-## Git workflow
+## Git workflow (move-fast mode)
 
-- **`main`** is protected. Only release-tagged merges from `dev`.
-- **`dev`** is the integration branch. Feature branches merge here via PR.
-- **Branch names**: `feat/<short-slug>`, `fix/<slug>`, `chore/<slug>`, `eval/<slug>`.
-- **PRs target `dev`**. Squash-merge. PR title is the eventual commit subject.
-- **Every PR must**: pass CI (lint, mypy, tests, eval regression), update affected docs in `product-requirements/`, and bump prompt versions if prompts changed.
+Two long-lived branches only: **`main`** and **`dev`**. No feature branches, no PRs.
+
+- **Work directly on `dev`** with small, descriptive commits.
+- **`main`** advances by fast-forward merge from `dev` at ship/release time (`git checkout main && git merge --ff-only dev && git push`). Tag releases (`vX.Y`).
 - **Never force-push `main` or `dev`.** Never `--no-verify` without explicit user request.
+- **Tests must pass before push.** `pytest` is the gate; CI re-runs lint + mypy + tests on every push to `dev`.
+- **Prompt changes bump `# version:`** and update [EVAL_REPORT.md](product-requirements/EVAL_REPORT.md) in the same commit.
+- **Doc changes** affecting architecture, threat model, or spec interpretation go in the same commit as the code.
+
+If a change is risky (DB destructive op, secret rotation, prod config), open a short-lived branch and ping for review — but the default is direct-to-dev.
 
 ## When you write code here
 
