@@ -42,3 +42,6 @@ node_modules/
 
 # Legacy (kept for reference, not shipped)
 legacy/
+
+# Claude Code per-machine permission allowlist (auto-mutates; user-local)
+.claude/settings.local.json
