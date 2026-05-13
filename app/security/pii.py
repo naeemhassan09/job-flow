@@ -24,7 +24,7 @@ _PATTERNS: list[tuple[PiiKind, re.Pattern[str]]] = [
     (
         "ADDRESS",
         re.compile(
-            r"\b\d{1,4}\s+[A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+){0,3}\s+"
+            r"\b\d{1,4}\s+[A-Z][a-zA-Z']*(?:\s+[A-Z][a-zA-Z']*){0,3}\s+"
             r"(?:Street|St\.?|Road|Rd\.?|Avenue|Ave\.?|Lane|Ln\.?|Way|Drive|Dr\.?)\b",
         ),
     ),

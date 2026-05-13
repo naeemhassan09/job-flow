@@ -1,0 +1,32 @@
+# User profile config — copy to profile.yml and fill in your details.
+# profile.yml is gitignored.
+
+candidate:
+  display_name: "Your Name"
+  email: "you@example.com"             # used for hashing into users.email_hash; never sent to LLMs
+  phone: "+353 XX XXX XXXX"            # only used for redaction matching
+  full_names:                          # redacted to [CANDIDATE_NAME] in JD text
+    - "Your Name"
+    - "Yourname"
+  location: "Dublin, Ireland"
+  work_authorisation: "Stamp 1G (Ireland) — eligible for Critical Skills Employment Permit"
+
+# Path to the canonical CV (markdown). Used by the profile node to compress into
+# a structured candidate_profile cached across applications.
+cv_path: "evals/fixtures/sample_cv.md"
+
+# External profiles. The Chrome extension companion (week 5) reads JD text from these
+# domains when you explicitly click "Send to CareerOS"; the system itself never scrapes.
+profiles:
+  linkedin_url: "https://www.linkedin.com/in/your-handle/"
+  indeed_url: "https://profile.indeed.com/?hl=en_IE&co=IE"
+
+# Cover-letter tuning
+cover_letter:
+  tone: "concise, evidence-led, Ireland-tuned"
+  must_mention:
+    - "work authorisation status"
+  forbid_phrases:
+    - "I am passionate about"
+    - "synergy"
+    - "rockstar"

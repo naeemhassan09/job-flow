@@ -42,3 +42,6 @@ node_modules/
 
 # Legacy (kept for reference, not shipped)
 legacy/
+
+# User-specific profile (real PII). profile.example.yml ships.
+config/profile.yml
