@@ -45,3 +45,6 @@ legacy/
 
 # User-specific profile (real PII). profile.example.yml ships.
 config/profile.yml
+
+# Claude Code per-machine permission allowlist (auto-mutates; user-local)
+.claude/settings.local.json
