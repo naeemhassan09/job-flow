@@ -1,0 +1,37 @@
+from __future__ import annotations
+
+from decimal import Decimal
+from functools import lru_cache
+from typing import Literal
+
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+
+    app_env: Literal["local", "dev", "prod", "test"] = "local"
+    app_log_level: str = "INFO"
+
+    database_url: str = "postgresql+asyncpg://careeros:careeros@localhost:5432/careeros"
+
+    openai_api_key: str = ""
+    anthropic_api_key: str = ""
+
+    langsmith_api_key: str = ""
+    langsmith_project: str = "careeros-dev"
+    langsmith_tracing: bool = False
+
+    monthly_budget_eur: Decimal = Field(default=Decimal("15.00"))
+    per_workflow_budget_eur: Decimal = Field(default=Decimal("0.50"))
+
+    pii_encryption_key: str = ""
+
+    extension_jwt_secret: str = "change-me"
+    extension_jwt_ttl_seconds: int = 86400
+
+
+@lru_cache(maxsize=1)
+def get_settings() -> Settings:
+    return Settings()
