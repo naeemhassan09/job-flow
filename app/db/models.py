@@ -14,6 +14,7 @@ from sqlalchemy import (
     Numeric,
     String,
     Text,
+    UniqueConstraint,
     func,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
@@ -108,3 +109,41 @@ class GeneratedArtifact(Base):
     eval_scores: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
     approved: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class DiscoveredJob(Base):
+    """A job pulled from an external partner API (Adzuna, Reed). Deduped on
+    (source, external_id). Promoted to an Application once the matcher's apply
+    band fires; otherwise kept for review or filtered.
+    """
+
+    __tablename__ = "discovered_jobs"
+    __table_args__ = (
+        UniqueConstraint("source", "external_id", name="uq_discovered_source_external_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    source: Mapped[str] = mapped_column(String(32), index=True)
+    external_id: Mapped[str] = mapped_column(String(128), index=True)
+    title: Mapped[str] = mapped_column(String(512))
+    company: Mapped[str] = mapped_column(String(256))
+    url: Mapped[str] = mapped_column(Text)
+    location: Mapped[str | None] = mapped_column(String(256))
+    country: Mapped[str | None] = mapped_column(String(8))
+    salary_min: Mapped[int | None] = mapped_column(Integer)
+    salary_max: Mapped[int | None] = mapped_column(Integer)
+    salary_currency: Mapped[str | None] = mapped_column(String(8))
+    description: Mapped[str | None] = mapped_column(Text)
+    posted_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    scraped_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
+    )
+    raw: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    # Triage state set by the discovery pipeline
+    # pending | scored | promoted | filtered | error
+    triage_status: Mapped[str] = mapped_column(String(32), default="pending", index=True)
+    fit_score: Mapped[float | None] = mapped_column(Numeric(5, 2))
+    decision: Mapped[str | None] = mapped_column(String(16))  # apply | maybe | skip
+    application_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("applications.id"), index=True
+    )

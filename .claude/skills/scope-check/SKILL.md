@@ -16,6 +16,15 @@ Ask:
 3. **Is this on the explicit-non-goals list (§3.3)?** If yes, refuse. These are non-negotiable safety/ethics lines.
 4. **Is it a stretch item (§21)?** Only proceed if V1 is genuinely complete — check ROADMAP.md status before agreeing.
 
+## Scope expansion log (post-spec)
+
+The spec §3.2 ban on scraping has been refined per user direction 2026-05-14:
+
+- **Adzuna API**, **Reed API**: IN (official partner APIs, not scraping).
+- **LinkedIn / Indeed direct scraping**: STILL OUT. These remain extension-only (week 5). Never write code that hits LI/Indeed HTML endpoints.
+
+If asked to add a new source: default-reject anything requiring bypass of paywall/auth-wall/robots.txt; surface the trade-off before writing code.
+
 ## The anti-patterns checklist (spec §22)
 
 Refuse or refactor if the request matches any of:

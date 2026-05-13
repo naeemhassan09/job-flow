@@ -31,6 +31,11 @@ class Settings(BaseSettings):
     extension_jwt_secret: str = "change-me"
     extension_jwt_ttl_seconds: int = 86400
 
+    # Job-discovery API credentials (optional — if unset, the scraper is disabled).
+    adzuna_app_id: str = ""
+    adzuna_app_key: str = ""
+    reed_api_key: str = ""
+
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:

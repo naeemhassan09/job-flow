@@ -66,8 +66,11 @@ SQLite cannot back a LangGraph Postgres checkpointer, and "production with SQLit
 - Doubles as a daily-use ergonomics win: invoke `score_fit` from inside Claude Desktop while triaging JDs.
 - Server is a thin wrapper over the LangGraph nodes — no business logic duplication.
 
-### Why a Chrome extension (not scraping)
+### Why a Chrome extension (not scraping) for LinkedIn / Indeed
 LinkedIn and Indeed ToS forbid automated scraping. The extension only reads the JD text from a page the user is already viewing and POSTs it to our API. No automation of clicks, applies, or messages.
+
+### Why official APIs for proactive discovery (Adzuna, Reed)
+Beyond the user clicking on a specific JD, we proactively discover Ireland-relevant roles via the **Adzuna** and **Reed** developer APIs. These are partner programmes with explicit free tiers (Adzuna ~1k calls/month, Reed ~1k/day). Discovered jobs land in `discovered_jobs`, are deduped on `(source, external_id)`, and auto-run through `preprocess + matcher` only (no generator) — so cost stays bounded. Only `fit_score >= 70` rows are promoted to `applications`; the rest stay in the table for review. We never scrape LinkedIn or Indeed directly (ToS).
 
 ### Why Cloud Run (not K8s, not Lambda)
 - Serverless containers — right level of abstraction for bursty GenAI workloads.

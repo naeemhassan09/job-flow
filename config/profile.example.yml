@@ -16,12 +16,12 @@ candidate:
 cv_path: "evals/fixtures/sample_cv.md"
 
 # External profiles. The Chrome extension companion (week 5) reads JD text from these
-# domains when you explicitly click "Send to CareerOS"; the system itself never scrapes.
+# domains when you explicitly click "Send to CareerOS"; the system itself NEVER scrapes
+# LinkedIn or Indeed (their ToS forbids it).
 profiles:
   linkedin_url: "https://www.linkedin.com/in/your-handle/"
   indeed_url: "https://profile.indeed.com/?hl=en_IE&co=IE"
 
-# Cover-letter tuning
 cover_letter:
   tone: "concise, evidence-led, Ireland-tuned"
   must_mention:
@@ -30,3 +30,42 @@ cover_letter:
     - "I am passionate about"
     - "synergy"
     - "rockstar"
+
+# What scrapers search for and how to post-filter discovered jobs.
+target_titles:
+  primary:                              # main search terms (used in queries)
+    - "AI Engineer"
+    - "ML Engineer"
+  secondary:                            # additional broad terms
+    - "Backend Engineer Python"
+
+keywords:
+  must_have:                            # included in scraper queries
+    - "Python"
+  nice_to_have:                         # boosts scoring, not required in query
+    - "AWS"
+    - "FastAPI"
+    - "LLM"
+
+red_flags:                              # discovered jobs containing any of these (case-insensitive) are dropped
+  - "unpaid"
+  - "equity only"
+  - "no sponsorship"
+
+# Where to search. Each entry maps to scraper-specific location keys.
+locations:
+  - name: "Dublin, Ireland"
+    country: "ie"
+
+# Scraper sources. Disable individually if rate-limited.
+sources:
+  adzuna:
+    enabled: true
+    results_per_page: 50
+    max_pages: 2          # 100 jobs per location per run
+    max_age_days: 14
+  reed:
+    enabled: true
+    results_per_page: 100
+    max_pages: 1
+    max_age_days: 14

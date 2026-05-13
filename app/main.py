@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fastapi import FastAPI
 
-from app.api import applications, health, metrics
+from app.api import applications, discovery, health, metrics
 from app.observability import log
 
 log.configure()
@@ -13,6 +13,7 @@ def create_app() -> FastAPI:
     app.include_router(health.router)
     app.include_router(metrics.router)
     app.include_router(applications.router)
+    app.include_router(discovery.router)
     return app
 
 

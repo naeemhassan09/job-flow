@@ -6,12 +6,13 @@
 
 | Week | Theme | Status |
 |---|---|---|
-| 0 | Foundation (this PR) | **in progress** |
-| 1 | Platform primitives (FastAPI, providers, budget, PII, injection) | next |
-| 2 | LangGraph workflow + HITL + checkpointer | pending |
-| 3 | Agentic research loop + MCP server + SSE | pending |
+| 0 | Foundation | done |
+| 1 | Platform primitives (FastAPI, providers, budget, PII, injection) | done |
+| 2 | LangGraph workflow + HITL + checkpointer | done |
+| 2.5 | Job discovery via Adzuna + Reed APIs (scope expansion) | done |
+| 3 | Agentic research loop + MCP server + SSE | next |
 | 4 | Eval harness (50 pairs) + CI integration | pending |
-| 5 | UI + CLI + Cloud Run deploy + LangSmith | pending |
+| 5 | UI + CLI + Cloud Run deploy + LangSmith + Chrome extension | pending |
 | 6 | Polish: README, threat model, eval report, demo video | pending |
 
 ## Week 0 — Foundation (current)

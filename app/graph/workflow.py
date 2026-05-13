@@ -22,12 +22,20 @@ def _after_matcher(state: JobSearchState) -> Literal["generator", "__skip__"]:
     return "generator" if state.get("decision") == "apply" else "__skip__"
 
 
-def build_workflow(checkpointer: BaseCheckpointSaver | None = None):
+def build_workflow(
+    checkpointer: BaseCheckpointSaver | None = None,
+    *,
+    interrupt_after: list[str] | None = None,
+):
     """Assemble the LangGraph workflow.
 
     Interrupt-before-`evaluator` is wired so a human approval gate sits between
     the generator and the evaluator's final persistence step. The caller resumes
     with ``graph.invoke(None, config)`` after approval.
+
+    Pass ``interrupt_after=["matcher"]`` for the discovery pipeline's score-only
+    variant — halts after fit-scoring, never enters the generator (keeps cost
+    predictable on auto-scored discovered jobs).
     """
     graph: StateGraph = StateGraph(JobSearchState)
 
@@ -55,4 +63,5 @@ def build_workflow(checkpointer: BaseCheckpointSaver | None = None):
     return graph.compile(
         checkpointer=checkpointer,
         interrupt_before=["evaluator"],
+        interrupt_after=interrupt_after or [],
     )
