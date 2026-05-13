@@ -24,7 +24,6 @@ class OpenAIProvider:
             ],
             max_tokens=request.max_tokens,
             temperature=request.temperature,
-            metadata=request.metadata or None,
         )
         latency_ms = int((time.perf_counter() - started) * 1000)
         usage = completion.usage
