@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.venv/
+venv/
+dist/
+build/
+
+# Env / secrets
+.env
+.env.local
+*.pem
+*.key
+
+# OS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+
+# App data
+data/
+applications/
+dashboard/tracker.xlsx
+*.sqlite
+*.db
+
+# Test / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Playwright / browser
+.playwright/
+node_modules/
+.next/
+
+# Legacy (kept for reference, not shipped)
+legacy/

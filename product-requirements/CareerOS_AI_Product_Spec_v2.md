@@ -1,0 +1,741 @@
+# CareerOS AI — Agentic Workflow Platform (v2 Spec)
+
+> **Reframed, scope-cut, and 2026-aligned.**
+> A production-grade agentic workflow platform demonstrated on a job-search use case.
+> Designed to be (a) a hireable portfolio artifact for senior AI Platform / Architect / MLOps / Agentic AI roles, and (b) a tool the author personally uses to accelerate his own Ireland-based job search.
+
+---
+
+## 1. Product Name & Positioning
+
+**CareerOS AI** — *A LangGraph-based agentic workflow platform with first-class cost governance, evaluation, security, and protocol interoperability (MCP).*
+
+The job-search workflow is the **reference application** that proves the platform end-to-end. The README, architecture diagram, and resume positioning all foreground the platform; the job-search use case is the demo.
+
+This positioning matters because:
+- Job-search AI is the most over-saturated portfolio category in 2026.
+- The same architecture (stateful agentic workflows, provider abstraction, cost governance, eval) is what enterprise teams are actually building for compliance review, RFP response, contract analysis, and internal copilots.
+- Reviewers should pattern-match this to *enterprise platform engineering*, not *another cover-letter generator*.
+
+---
+
+## 2. Dual Goals
+
+### 2.1 Portfolio goal (primary)
+Demonstrate the architectural patterns senior AI Platform / Agentic AI hiring managers screen for in 2026:
+- Stateful agentic workflows with LangGraph (checkpointing, resumability, HITL)
+- A genuine agentic loop (tool use, replanning) — not just a deterministic pipeline
+- Multi-provider LLM abstraction (OpenAI + Claude) with cost-aware routing
+- Production observability (LangSmith + structured logs)
+- Cost governance (per-step token + cost tracking, budget guards, prompt caching)
+- Security (PII redaction, prompt-injection treatment of untrusted inputs)
+- Evaluation harness with a labeled dataset and CI regression
+- MCP server exposing platform capabilities as tools
+- Cloud-deployed (Cloud Run for GCP exposure; ECS-compatible for AWS)
+
+### 2.2 Personal-use goal (the system must actually be useful)
+The author will use CareerOS AI daily during his job search. So the system must:
+- Reliably parse pasted JDs into structured fields
+- Score JD-vs-CV fit with a calibrated, evidence-grounded number
+- Generate Ireland-tuned cover letters and tailored CV bullets
+- Auto-research the target company (via the agentic loop) before he applies
+- Persist everything in a tracker so he can audit what he applied to and when
+- Be cheap to run (under €15/month at his expected volume)
+- Be available as MCP tools so he can invoke it from Claude Desktop
+
+If a feature doesn't serve **both** goals, it's cut.
+
+---
+
+## 3. What's IN and what's OUT (compared to v1 spec)
+
+### 3.1 IN
+- LangGraph workflow with 5 functional nodes + 1 agentic research loop
+- Postgres checkpointer for state persistence
+- Human-in-the-loop approval gate before any artifact is finalized
+- OpenAI + Claude provider abstraction with cost-aware router
+- Token/cost tracking at workflow + step granularity, with hard budget cap
+- Anthropic prompt caching with measured savings reported in dashboard
+- PII redaction and prompt-injection classifier for untrusted JD inputs
+- Eval harness: 50 labeled JD/CV pairs, regression suite in CI, published benchmark
+- MCP server exposing `analyze_jd`, `score_fit`, `generate_cover_letter`, `research_company`
+- Streaming endpoint for cover-letter generation
+- Cloud Run deployment + Dockerfile + GitHub Actions CI
+- Single-page web UI (minimal) + CLI
+
+### 3.2 OUT (cut from v1)
+| Cut | Reason |
+|---|---|
+| Reflection / learning agent | N=1 user, no statistical signal — pure aspiration, hurts credibility |
+| Vector embeddings for CV/JD match | Embedding retrieval over two documents is cargo-culted RAG |
+| Recruiter outreach agent | Adds LLM calls without architectural novelty; "AI wrapper" smell |
+| Interview-prep agent | Same — out of V1, optional V2 |
+| 16-agent framing | Conflates services with agents; reviewers count nodes |
+| Multi-page Streamlit dashboard | Half-built UI hurts more than no UI |
+| Four separate observability dashboards | One is enough; LangSmith covers most |
+| "Tracker Agent" / "Token Governance Agent" | These are services/middleware, not agents |
+| LinkedIn scraping, browser automation, auto-apply | Risk without engineering signal |
+
+### 3.3 Explicit non-goals
+- No autonomous email/message sending
+- No CAPTCHA bypass, no scraping of job boards
+- No fabrication: every CV bullet must be evidence-backed
+- No K8s in V1 (Cloud Run is sufficient and on-trend for serverless GenAI)
+- No Neo4j / GraphRAG (would be cargo-culting for this use case)
+
+---
+
+## 4. High-Level Architecture
+
+```text
+                ┌────────────────────────────┐
+                │    Web UI (Next.js)        │
+                │    CLI                     │
+                │    MCP Client (Claude)     │
+                └────────────┬───────────────┘
+                             │ HTTP / MCP
+                             ▼
+            ┌──────────────────────────────────┐
+            │      FastAPI                     │
+            │  - REST endpoints                │
+            │  - MCP server                    │
+            │  - Streaming SSE for generation  │
+            └────────────┬─────────────────────┘
+                         │
+                         ▼
+            ┌──────────────────────────────────┐
+            │    LangGraph Workflow            │
+            │  ┌────────────────────────────┐  │
+            │  │ Preprocess (security+JD)   │  │
+            │  │   ↓                        │  │
+            │  │ Profile (CV compress)      │  │
+            │  │   ↓                        │  │
+            │  │ Research Loop (agentic) ◄──┼──┐ tool calls
+            │  │   ↓                        │  │
+            │  │ Matcher (fit + decision)   │  │
+            │  │   ↓                        │  │
+            │  │ Generator (cover + bullets)│  │
+            │  │   ↓                        │  │
+            │  │ Evaluator + HITL gate      │  │
+            │  └────────────────────────────┘  │
+            └────────────┬─────────────────────┘
+                         │
+        ┌────────────────┼────────────────┐
+        ▼                ▼                ▼
+   ┌─────────┐     ┌──────────┐     ┌──────────┐
+   │Postgres │     │ LLM      │     │LangSmith │
+   │ - app   │     │ Providers│     │  traces  │
+   │ - usage │     │ OpenAI   │     │          │
+   │ - chkpt │     │ Claude   │     │          │
+   └─────────┘     └──────────┘     └──────────┘
+```
+
+---
+
+## 5. LangGraph Workflow Design
+
+### 5.1 Nodes (5 functional + 1 loop)
+
+| Node | Type | Responsibility |
+|---|---|---|
+| `preprocess` | Functional | PII redaction, prompt-injection scan, JD structured extraction |
+| `profile` | Functional | One-time CV compression into reusable structured profile |
+| `research` | **Agentic loop** | Iteratively researches target company using web_search + fetch_url tools, decides when to stop |
+| `matcher` | Functional | Scores JD-vs-CV fit, produces decision (apply / maybe / skip) |
+| `generator` | Functional | Generates tailored CV bullets + cover letter (conditional on `apply`) |
+| `evaluator` | Functional | Quality gates: factuality check, ATS keyword coverage, length, tone |
+
+A human-approval **interrupt** sits between `evaluator` and final artifact persistence. Approval can come from the web UI or via MCP tool.
+
+### 5.2 Why this is genuinely agentic (not a DAG)
+
+The `research` node is a real agentic loop:
+
+```python
+# Pseudo-flow
+state.notes = []
+while True:
+    plan = llm.decide_next_action(state.role, state.company, state.notes)
+    if plan.action == "stop":
+        break
+    if plan.action == "search":
+        results = tool.web_search(plan.query)
+        state.notes.append(results)
+    elif plan.action == "fetch":
+        page = tool.fetch_url(plan.url)
+        state.notes.append(page)
+    if len(state.notes) > MAX_ITERATIONS:
+        break
+state.company_brief = llm.summarize(state.notes)
+```
+
+This is the difference between "stateful pipeline" and "agentic system." One real loop is worth more than 15 fake "agents."
+
+### 5.3 Routing logic
+
+```text
+matcher.fit_score:
+  >= 70 → generator  (apply path)
+  50–69 → gap_summary only (skip generator)
+  < 50  → archive with reason
+```
+
+No 7-way decision matrix. One threshold band. Simpler is more honest.
+
+### 5.4 Persistence & resumability
+
+- LangGraph **Postgres checkpointer** saves state at each node.
+- Workflows can be paused at the HITL gate and resumed later (this is the key resumability demo).
+- Time-travel debugging via `graph.get_state_history()`.
+- Failed runs can be replayed from the last successful checkpoint.
+
+---
+
+## 6. State Schema
+
+```python
+from typing import TypedDict, Optional, List, Dict, Any, Literal
+
+class JobSearchState(TypedDict, total=False):
+    # Identity
+    user_id: str
+    application_id: str
+    workflow_id: str
+
+    # Inputs
+    raw_jd: str
+    raw_cv_text: str
+
+    # Security outputs
+    redacted_jd: str
+    redacted_cv: str
+    pii_findings: List[Dict[str, Any]]
+    injection_flags: List[str]
+
+    # Parsed
+    parsed_job: Dict[str, Any]
+    candidate_profile: Dict[str, Any]
+
+    # Research loop
+    research_iterations: int
+    research_notes: List[Dict[str, Any]]
+    company_brief: Optional[str]
+
+    # Matching
+    fit_score: float
+    score_breakdown: Dict[str, float]
+    decision: Literal["apply", "maybe", "skip"]
+    decision_reason: str
+
+    # Generation
+    tailored_bullets: List[str]
+    cover_letter: Optional[str]
+
+    # Evaluation
+    eval_scores: Dict[str, float]
+    quality_gate_passed: bool
+
+    # System
+    current_step: str
+    errors: List[str]
+    retry_count: int
+    awaiting_approval: bool
+
+    # Cost telemetry (denormalized for quick reads)
+    total_tokens: int
+    total_cost_eur: float
+```
+
+---
+
+## 7. Provider Abstraction & Cost-Aware Router
+
+### 7.1 Interface
+
+```python
+class LLMProvider(Protocol):
+    async def generate(
+        self,
+        system: str,
+        messages: List[Message],
+        model: str,
+        max_tokens: int,
+        temperature: float,
+        metadata: Dict[str, Any],   # workflow_id, agent, step
+        stream: bool = False,
+    ) -> LLMResponse: ...
+
+class LLMResponse(BaseModel):
+    text: str
+    provider: str
+    model: str
+    prompt_tokens: int
+    completion_tokens: int
+    cached_tokens: int          # prompt-cache hits
+    latency_ms: int
+    estimated_cost_eur: float
+    raw_finish_reason: str
+```
+
+Implementations: `OpenAIProvider`, `AnthropicProvider`. Adding Gemini = one new file.
+
+### 7.2 Router
+
+| Task | Default | Fallback | Rationale |
+|---|---|---|---|
+| JD parsing | `gpt-4.1-mini` | `claude-haiku-4-5` | cheap, structured |
+| CV profile compress | `claude-sonnet-4-6` | `gpt-4.1-mini` | runs once, quality matters |
+| Research loop steps | `gpt-4.1-mini` | `claude-haiku-4-5` | many short calls |
+| Matcher (scoring) | `gpt-4.1-mini` | `claude-haiku-4-5` | structured reasoning |
+| Cover letter | `claude-sonnet-4-6` | `gpt-4.1-mini` | human-facing prose |
+| Evaluator | `gpt-4.1-mini` | `claude-haiku-4-5` | classification |
+
+Router enforces:
+- Hard monthly budget cap (configurable, default €15)
+- Per-workflow soft cap (default €0.50, can be raised)
+- Per-step max output tokens
+- Automatic fallback on provider error
+- Failure-injection tests to prove the fallback works (kill OpenAI mid-workflow → expect Claude completion)
+
+### 7.3 Caching
+
+- Anthropic prompt caching for the system prompt + compressed CV profile (huge token saver because the CV doesn't change between applications).
+- In-process LRU for parsed-JD by hash (skip re-parse on duplicate paste).
+- Reported cache savings on the observability page with measured numbers — not aspirational.
+
+---
+
+## 8. MCP Server
+
+### 8.1 Why this is in V1
+
+In 2026, demonstrating MCP fluency is a strong signal. It's also genuinely useful: the author can invoke CareerOS tools directly from Claude Desktop during his job search.
+
+### 8.2 Exposed tools
+
+| Tool | Description |
+|---|---|
+| `analyze_jd` | Returns parsed JD structure given raw text |
+| `score_fit` | Returns fit score + breakdown given JD text |
+| `generate_cover_letter` | Returns Ireland-tuned cover letter |
+| `research_company` | Runs the agentic research loop, returns structured brief |
+| `list_applications` | Returns user's tracker with statuses |
+
+The MCP server is a thin wrapper that calls the same underlying LangGraph nodes. No business logic duplication.
+
+### 8.3 Demo flow
+
+> User in Claude Desktop: *"Use careeros to score this JD against my CV and draft a cover letter."*
+>
+> Claude Desktop calls `score_fit` → gets 82 → calls `generate_cover_letter` → returns draft inline.
+
+This is recorded as a 60-second demo video and embedded in the README.
+
+---
+
+## 9. Token & Cost Governance
+
+### 9.1 Tracking
+
+Every LLM call writes a row to `llm_usage_events`:
+
+```sql
+CREATE TABLE llm_usage_events (
+    id              UUID PRIMARY KEY,
+    application_id  UUID REFERENCES applications(id),
+    workflow_id     TEXT NOT NULL,
+    node_name       TEXT NOT NULL,
+    step_name       TEXT,
+    provider        TEXT NOT NULL,
+    model           TEXT NOT NULL,
+    prompt_tokens   INTEGER,
+    completion_tokens INTEGER,
+    cached_tokens   INTEGER,
+    total_tokens    INTEGER,
+    estimated_cost_eur NUMERIC(10,6),
+    latency_ms      INTEGER,
+    cache_hit       BOOLEAN,
+    retry_count     INTEGER,
+    status          TEXT,
+    created_at      TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+### 9.2 Budget guard
+
+A `BudgetGuard` is consulted before every LLM call:
+- Reads month-to-date spend.
+- Warns at 70% threshold (logged + surfaced in UI).
+- Hard-blocks at 100% with a clear error.
+- Manual override flag for testing.
+
+### 9.3 Reported metrics (single observability page)
+
+- Month-to-date spend vs. budget
+- Spend by provider, model, node
+- Average cost per workflow
+- Cache savings (€ and %)
+- Most expensive workflow this month
+
+That's it. No four dashboards. One page, real numbers.
+
+---
+
+## 10. Security
+
+### 10.1 PII redaction
+
+`SecurityAgent` (the only thing legitimately called an "agent" outside the LangGraph nodes) runs first:
+
+- Detects: emails, phone numbers, addresses, PPSN, document numbers, full names.
+- Replaces with typed placeholders: `[EMAIL]`, `[PHONE]`, `[CANDIDATE_NAME]`.
+- Original PII is stored encrypted (AES-GCM) in a separate column with restricted access.
+- Logs **never** contain raw PII.
+- A test asserts redaction works on a fixture set.
+
+### 10.2 Prompt-injection defense
+
+JDs are untrusted input. The system:
+- Wraps JD content in strict delimiters before any LLM call.
+- Runs a small classifier prompt that flags injection patterns ("ignore previous", "reveal system prompt", "send data to", etc.).
+- Includes a regression set of ~15 attack JDs that the system must catch in CI.
+- Treats classifier-flagged JDs as `quarantined` — human must review before processing.
+
+### 10.3 Secrets
+
+- `.env` for local; AWS Secrets Manager / GCP Secret Manager for prod.
+- No keys in the public repo.
+- `.env.example` and a redacted sample CV ship with the repo.
+
+---
+
+## 11. Evaluation Harness
+
+### 11.1 The dataset
+
+A folder `evals/dataset/` containing 50 labeled JD/CV pairs:
+- 25 real JDs scraped manually + 25 synthetic JDs covering edge cases
+- Each pair labeled with: expected `decision` (apply/maybe/skip), expected required skills, expected fit score band
+
+### 11.2 What gets evaluated
+
+| Output | Metric |
+|---|---|
+| JD parsing | F1 on extracted skills vs. labels |
+| Fit score | Mean absolute error vs. labeled bands |
+| Decision | Accuracy on apply/maybe/skip classification |
+| Cover letter | Factuality (LLM-as-judge against CV evidence) + ATS keyword coverage (rules-based) |
+| Research brief | LLM-as-judge for relevance + groundedness |
+
+### 11.3 CI integration
+
+- `pytest evals/` runs on every PR.
+- Runs against `gpt-4.1-mini` and `claude-haiku-4-5` in parallel.
+- Posts a comparison table to the PR comment.
+- Fails the PR if any metric regresses by > 5% from the main branch.
+
+### 11.4 Published benchmark
+
+The README contains a results table:
+
+| Task | OpenAI mini | Claude Haiku | Best |
+|---|---:|---:|---|
+| JD parsing F1 | 0.87 | 0.84 | OpenAI |
+| Fit score MAE | 6.2 | 5.8 | Claude |
+| Decision accuracy | 0.92 | 0.90 | OpenAI |
+| Cover-letter factuality | 0.95 | 0.97 | Claude |
+
+Numbers are real, not made up. This single artifact is what most portfolio projects are missing.
+
+---
+
+## 12. Observability
+
+### 12.1 LangSmith
+- All LangGraph runs traced.
+- Per-node latency, token, cost.
+- Feedback scores tied back to runs.
+
+### 12.2 Structured logs
+- JSON logs to stdout (Cloud Run / CloudWatch friendly).
+- `workflow_id`, `application_id`, `node`, `model`, `cost_eur`, `latency_ms` on every relevant log line.
+- Never contain raw PII (enforced by a test).
+
+### 12.3 Metrics
+- Prometheus-style counters and histograms for: workflow starts, completions, errors, cost.
+- Exposed at `/metrics`.
+
+---
+
+## 13. Database
+
+Six tables, no more:
+
+```sql
+users(id, email_hash, created_at)
+applications(id, user_id, company, role_title, job_url, status, fit_score, decision, created_at, applied_at)
+job_analyses(id, application_id, parsed_job JSONB, score_breakdown JSONB, company_brief TEXT, created_at)
+generated_artifacts(id, application_id, type, content, model, eval_scores JSONB, approved BOOLEAN, created_at)
+llm_usage_events(...)  -- defined above
+budget_limits(user_id, monthly_budget_eur, alert_threshold)
+```
+
+LangGraph checkpoints live in their own schema managed by the LangGraph Postgres checkpointer.
+
+---
+
+## 14. API Design
+
+```text
+# Workflow control
+POST   /api/applications               # create, returns application_id
+POST   /api/applications/{id}/run      # trigger LangGraph workflow
+GET    /api/applications/{id}          # full state
+GET    /api/applications/{id}/stream   # SSE: stream cover letter generation
+POST   /api/applications/{id}/approve  # resume from HITL gate
+POST   /api/applications/{id}/reject   # cancel after HITL gate
+
+# Listing
+GET    /api/applications               # tracker view
+
+# Cost / observability
+GET    /api/usage/monthly
+GET    /api/usage/by-node
+
+# MCP server
+GET    /mcp                            # MCP discovery endpoint
+POST   /mcp/tools/{tool_name}/invoke
+```
+
+Total: 9 REST endpoints + MCP. Compare to v1's 14+. Smaller surface = fewer half-built endpoints in the demo.
+
+---
+
+## 15. UI
+
+**One page**, built with Next.js + Tailwind (or plain HTML+htmx if time-constrained):
+- Paste a JD, see the live workflow run with status per node.
+- See fit score, decision, and the generated cover letter.
+- Approve / reject button (the HITL gate).
+- Tracker table at the bottom.
+- A tiny "Spend this month" widget in the header.
+
+That's the whole UI. No multi-page dashboard. The author can use it daily; reviewers can demo it in 60 seconds.
+
+CLI is also provided for power use:
+
+```bash
+careeros run --jd-file ./roles/openai_dublin.md
+careeros score --jd "..." 
+careeros tracker
+careeros usage --month 2026-05
+```
+
+---
+
+## 16. Repo Structure
+
+```text
+careeros-ai/
+├── README.md                # platform-first positioning, demo video, eval table
+├── ARCHITECTURE.md          # diagram + decisions
+├── THREAT_MODEL.md          # PII + injection threat model
+├── EVAL_REPORT.md           # latest benchmark numbers
+├── docker-compose.yml
+├── Dockerfile
+├── pyproject.toml
+├── .env.example
+├── app/
+│   ├── main.py
+│   ├── api/                 # FastAPI routes (REST + SSE)
+│   ├── mcp/                 # MCP server
+│   ├── graph/               # LangGraph workflow + state + checkpointer
+│   ├── nodes/               # one file per node
+│   │   ├── preprocess.py
+│   │   ├── profile.py
+│   │   ├── research_loop.py
+│   │   ├── matcher.py
+│   │   ├── generator.py
+│   │   └── evaluator.py
+│   ├── llm/                 # provider abstraction + router + caching + budget
+│   ├── security/            # pii + injection
+│   ├── db/                  # models + migrations
+│   └── prompts/             # versioned prompt files
+├── evals/
+│   ├── dataset/             # 50 labeled JD/CV pairs
+│   ├── runners/             # eval scripts
+│   └── reports/             # generated benchmark tables
+├── frontend/                # Next.js single page (or plain HTML)
+├── tests/
+│   ├── test_pii_redaction.py
+│   ├── test_injection_classifier.py
+│   ├── test_budget_guard.py
+│   ├── test_provider_fallback.py
+│   ├── test_research_loop.py
+│   └── test_workflow_resume.py
+├── deploy/
+│   ├── cloudrun.yaml
+│   └── ecs-task-def.json    # parity reference
+└── .github/workflows/
+    ├── ci.yml               # lint + tests
+    ├── eval.yml             # eval regression on PR
+    └── deploy.yml           # to Cloud Run
+```
+
+---
+
+## 17. Build Phases (6 weeks, realistic)
+
+### Week 1 — Foundations
+- FastAPI skeleton, Postgres, Docker Compose
+- Provider abstraction (OpenAI + Claude)
+- Token tracking + cost calculator + budget guard
+- PII redactor + injection classifier
+- Tests for the above
+**Ship checkpoint:** these alone form a small reusable LLM-platform library
+
+### Week 2 — Workflow
+- LangGraph workflow with the 5 functional nodes
+- Postgres checkpointer
+- HITL approval interrupt + resume
+- Structured logging
+
+### Week 3 — Agentic loop + MCP
+- Implement `research` agentic loop with web_search + fetch_url tools
+- MCP server exposing 4 tools
+- Streaming SSE for cover-letter generation
+
+### Week 4 — Evaluation
+- Build 50-pair labeled dataset
+- Eval runners for the 5 metrics
+- CI integration: PR comment with comparison table
+- Failure-injection tests for provider fallback
+
+### Week 5 — UI + Deploy
+- Single-page web UI
+- CLI
+- Cloud Run deployment via GitHub Actions
+- LangSmith integration
+
+### Week 6 — Polish
+- README rewrite with platform-first positioning
+- Architecture diagram
+- Threat model doc
+- Eval report doc
+- 90-second demo video
+- One blog post: "Why I chose LangGraph checkpointing over X for resumable agentic workflows"
+- Optional: extract `app/llm/` as a small standalone PyPI package
+
+If a week slips, the **eval harness and MCP server are non-negotiable**. They are the differentiators. Cut UI polish or research-loop sophistication first.
+
+---
+
+## 18. Acceptance Criteria
+
+### 18.1 Functional
+- A user can paste a JD and within ~60 seconds receive a fit score, decision, company brief, and (if `apply`) a draft cover letter.
+- The user can approve or reject before the artifact is finalized.
+- Workflows survive a process restart (checkpointer test).
+- A killed OpenAI provider does not break a workflow (fallback test).
+- Hard budget cap stops a workflow that would exceed it.
+
+### 18.2 Observability
+- LangSmith trace for every workflow.
+- `/api/usage/monthly` returns accurate cost numbers.
+- Logs contain no raw PII (asserted in a CI test).
+
+### 18.3 Eval
+- Benchmark numbers in EVAL_REPORT.md are reproducible from the eval scripts.
+- CI fails the PR if any metric regresses > 5%.
+
+### 18.4 Portfolio
+- README has: 60-second hook, demo video, architecture diagram, eval table, threat model link.
+- Repo runs locally via `docker compose up` after copying `.env.example` to `.env`.
+- Public sample data only — no real CV in repo.
+
+---
+
+## 19. README Hook (top of repo)
+
+```markdown
+# CareerOS AI — Agentic Workflow Platform
+
+CareerOS AI is a production-grade LangGraph platform for stateful, evaluated,
+cost-governed agentic workflows. It demonstrates the architectural patterns
+modern enterprise GenAI teams are converging on: provider abstraction,
+genuine agentic loops with tool use, prompt-injection defense, per-step cost
+governance, MCP interoperability, and a CI-integrated evaluation harness with
+published benchmarks.
+
+The reference application is a job-search workflow: paste a JD, get a calibrated
+fit score, an auto-researched company brief, and a draft cover letter — with
+every LLM call traced, costed, evaluated, and gated by human approval.
+
+→ 90-second demo video
+→ Architecture diagram
+→ Latest eval results: OpenAI vs Claude across 5 tasks
+→ Threat model
+→ Live demo (Cloud Run): https://...
+```
+
+---
+
+## 20. Resume Bullet (rewritten)
+
+> **Designed and shipped CareerOS AI, a LangGraph-based agentic workflow platform with multi-provider LLM abstraction (OpenAI/Claude), Postgres-backed state checkpointing, an agentic research loop with tool use, MCP server, prompt-caching cost governance, PII + prompt-injection defense, and a CI-integrated evaluation harness with a published 50-pair benchmark. Deployed on Cloud Run with LangSmith tracing.**
+
+Specific. Verifiable. Maps to staff/architect-level hiring rubrics. No "16 agents."
+
+---
+
+## 21. Stretch (post-V1, only if V1 ships clean)
+
+- Interview-prep node (only if eval data shows it has signal)
+- Recruiter-outreach node (only if user demand justifies)
+- Gemini provider (third provider validates the abstraction)
+- A2A protocol experiment for inter-agent communication
+- Extracted `careeros-llm-platform` PyPI package
+- Conference talk submission
+
+---
+
+## 22. Anti-patterns to avoid in implementation
+
+1. Don't call services "agents." `tracker_agent` is just a CRUD service. Be honest in naming.
+2. Don't add embeddings until there's something to retrieve over. The CV+JD pair is one document each — structured prompting beats vector search here.
+3. Don't add the reflection loop until N>>1 user data exists.
+4. Don't ship a Streamlit dashboard alongside a Next.js page. Pick one.
+5. Don't claim "production" with SQLite. Use Postgres from day one.
+6. Don't write aspirational metrics in the README. Run the eval, paste real numbers.
+7. Don't bury the platform positioning under the job-search use case. Lead with the platform.
+
+---
+
+## 23. Self-check before shipping V1
+
+Ask, brutally:
+- [ ] Does the README convince a senior reviewer in 30 seconds this isn't another AI cover-letter generator?
+- [ ] Is there a real agentic loop (tool use + replanning) someone can read in the code?
+- [ ] Does the eval table contain numbers I can reproduce live?
+- [ ] Does the failure-injection test prove provider fallback works?
+- [ ] Does the budget guard actually block over-budget workflows in a test?
+- [ ] Is there a 90-second video I'd be proud to send to a hiring manager?
+- [ ] Can I demo MCP tool calls from Claude Desktop on the spot?
+- [ ] Is the repo cleanly runnable in under 5 minutes from clone?
+
+If any answer is "no," V1 isn't done.
+
+---
+
+## 24. References / Design basis (current to 2026)
+
+- LangGraph: stateful workflows, Postgres checkpointer, HITL interrupts, time-travel.
+- LangSmith: tracing, evals, monitoring.
+- MCP (Model Context Protocol): tool-server interoperability with Claude Desktop and other clients.
+- Anthropic prompt caching: significant cost reduction for stable system prompts and long context.
+- OpenAI structured outputs: for parsed JD and decision schemas.
+- Cloud Run: serverless container deploy, well-suited to bursty agentic workloads.
+
+---
+
+*End of v2 spec. Tighter, more honest, more hireable, and still genuinely useful for the author's own job search.*
