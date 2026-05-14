@@ -1,13 +1,19 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
+from fastapi.staticfiles import StaticFiles
 
-from app.api import applications, captures, discovery, health, metrics
+from app.api import applications, captures, discovery, health, job_actions, metrics
 from app.config import get_settings
 from app.observability import log
 
 log.configure()
+
+STATIC_DIR = Path(__file__).resolve().parent / "static"
 
 
 def create_app() -> FastAPI:
@@ -15,7 +21,6 @@ def create_app() -> FastAPI:
 
     settings = get_settings()
     origins = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
-    # chrome-extension://* is a literal pattern in browsers; allow via regex too.
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,
@@ -30,6 +35,15 @@ def create_app() -> FastAPI:
     app.include_router(applications.router)
     app.include_router(discovery.router)
     app.include_router(captures.router)
+    app.include_router(job_actions.router)
+
+    # Inbox UI — single-page HTML served from /ui.
+    app.mount("/ui", StaticFiles(directory=STATIC_DIR, html=True), name="ui")
+
+    @app.get("/")
+    async def root() -> RedirectResponse:
+        return RedirectResponse(url="/ui/")
+
     return app
 
 

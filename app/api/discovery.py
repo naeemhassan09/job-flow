@@ -138,6 +138,10 @@ async def get_job(
         "triage_status": row.triage_status,
         "fit_score": float(row.fit_score) if row.fit_score is not None else None,
         "decision": row.decision,
+        "decision_reason": row.decision_reason,
+        "score_breakdown": row.score_breakdown or {},
+        "parsed_job": row.parsed_job or {},
+        "human_feedback": row.human_feedback or {},
         "application_id": str(row.application_id) if row.application_id else None,
     }
 

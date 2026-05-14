@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CareerOS AI — Inbox</title>
+    <link rel="stylesheet" href="/ui/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <h1>CareerOS AI <span class="muted">— Inbox</span></h1>
+      <nav class="filters">
+        <label>
+          Status
+          <select id="filter-status">
+            <option value="all">all</option>
+            <option value="pending">pending</option>
+            <option value="scored">scored</option>
+            <option value="promoted">promoted</option>
+            <option value="filtered">filtered</option>
+            <option value="error">error</option>
+          </select>
+        </label>
+        <label>
+          Source
+          <select id="filter-source">
+            <option value="">all</option>
+            <option value="linkedin">linkedin</option>
+            <option value="indeed">indeed</option>
+            <option value="adzuna">adzuna</option>
+            <option value="reed">reed</option>
+          </select>
+        </label>
+        <button id="refresh" class="ghost" title="Reload list">↻</button>
+        <span id="count" class="muted small"></span>
+      </nav>
+    </header>
+
+    <main class="split">
+      <aside id="list" class="list" aria-label="Captured jobs">
+        <div class="empty">Loading…</div>
+      </aside>
+
+      <section id="detail" class="detail" aria-label="Job detail">
+        <div class="empty">Select a job to view details.</div>
+      </section>
+    </main>
+
+    <template id="row-template">
+      <button class="row" type="button">
+        <div class="row-head">
+          <span class="title"></span>
+          <span class="score"></span>
+        </div>
+        <div class="row-sub">
+          <span class="company"></span>
+          <span class="dot">·</span>
+          <span class="location"></span>
+        </div>
+        <div class="row-meta">
+          <span class="source-pill"></span>
+          <span class="status-pill"></span>
+        </div>
+      </button>
+    </template>
+
+    <template id="detail-template">
+      <article class="job">
+        <header class="job-head">
+          <h2 class="job-title"></h2>
+          <div class="job-sub">
+            <span class="job-company"></span>
+            <span class="dot">·</span>
+            <span class="job-location"></span>
+          </div>
+          <div class="job-meta">
+            <a class="job-url" target="_blank" rel="noreferrer">Open original ↗</a>
+            <span class="job-source-pill"></span>
+            <span class="job-status-pill"></span>
+            <span class="job-captured muted small"></span>
+          </div>
+        </header>
+
+        <section class="score-block">
+          <div class="score-row">
+            <div class="score-big">
+              <span class="score-num">—</span>
+              <span class="score-label muted small">fit</span>
+            </div>
+            <div class="decision-block">
+              <div class="decision-pill">—</div>
+              <p class="decision-reason muted"></p>
+            </div>
+            <div class="score-actions">
+              <button class="primary" data-action="score">Score now</button>
+            </div>
+          </div>
+          <div class="breakdown">
+            <h4>Breakdown</h4>
+            <div class="breakdown-bars"></div>
+          </div>
+        </section>
+
+        <section class="feedback">
+          <h3>Your feedback</h3>
+          <p class="muted small">
+            What you record here informs prompt tuning. Override the score / decision if
+            the system got it wrong.
+          </p>
+          <div class="feedback-row">
+            <div class="thumbs">
+              <button data-thumb="up" class="thumb">👍</button>
+              <button data-thumb="down" class="thumb">👎</button>
+            </div>
+            <label class="field">
+              Correct score
+              <input type="number" min="0" max="100" data-field="score_correction" />
+            </label>
+            <label class="field">
+              Override decision
+              <select data-field="decision_override">
+                <option value="">— no override —</option>
+                <option value="apply">apply</option>
+                <option value="maybe">maybe</option>
+                <option value="skip">skip</option>
+              </select>
+            </label>
+          </div>
+          <label class="field stack">
+            Notes
+            <textarea data-field="notes" rows="3" placeholder="What was right or wrong about the scoring? Anything unusual about the role?"></textarea>
+          </label>
+          <div class="feedback-actions">
+            <button class="primary" data-action="save-feedback">Save feedback</button>
+            <span class="feedback-status muted small"></span>
+          </div>
+        </section>
+
+        <section class="parsed">
+          <details>
+            <summary>Parsed JD (model output)</summary>
+            <pre class="parsed-json muted small"></pre>
+          </details>
+        </section>
+
+        <section class="raw">
+          <details>
+            <summary>Full description</summary>
+            <pre class="raw-text"></pre>
+          </details>
+        </section>
+      </article>
+    </template>
+
+    <script src="/ui/main.js"></script>
+  </body>
+</html>

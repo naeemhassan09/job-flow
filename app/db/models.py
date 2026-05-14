@@ -144,6 +144,14 @@ class DiscoveredJob(Base):
     triage_status: Mapped[str] = mapped_column(String(32), default="pending", index=True)
     fit_score: Mapped[float | None] = mapped_column(Numeric(5, 2))
     decision: Mapped[str | None] = mapped_column(String(16))  # apply | maybe | skip
+    decision_reason: Mapped[str | None] = mapped_column(Text)
+    score_breakdown: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    parsed_job: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    # Human-in-the-loop feedback. Captured via /api/jobs/{id}/feedback.
+    # Shape: {thumb: "up"|"down"|null, score_correction: int|null,
+    #         decision_override: "apply"|"maybe"|"skip"|null, notes: str,
+    #         reviewed_at: iso8601-string|null}
+    human_feedback: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
     application_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("applications.id"), index=True
     )
