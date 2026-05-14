@@ -10,10 +10,10 @@ Stateful agentic workflow on top of the week-1 platform primitives. Paste a JD โ
 
 ## What's in
 
-- LangGraph `StateGraph` with 5 functional nodes + conditional routing per spec ยง5.3
+- LangGraph `StateGraph` with 5 functional nodes + conditional routing per spec Section 5.3
 - `interrupt_before=["evaluator"]` HITL gate; resume via `POST /approve`
 - AsyncPostgresSaver wired (MemorySaver in `APP_ENV=test`)
-- Alembic baseline migration for the six application tables (ยง13)
+- Alembic baseline migration for the six application tables (Section 13)
 - 5 versioned prompts under `app/prompts/`, loaded by `app.llm.prompts`
 - User-profile config (`config/profile.example.yml`) + loader (`app/profile.py`)
 - API: `POST /api/applications`, `POST /{id}/approve`, `POST /{id}/reject`, `GET /{id}`
@@ -28,7 +28,7 @@ Stateful agentic workflow on top of the week-1 platform primitives. Paste a JD โ
 - [x] All 6 week-1 test suites still pass (56 total)
 - [ ] (post-merge) `alembic upgrade head` against a fresh Postgres confirms schema applies cleanly
 
-## Acceptance checks (spec ยง17 W2)
+## Acceptance checks (spec Section 17 W2)
 
 - [x] LangGraph workflow with the 5 functional nodes
 - [x] Postgres checkpointer

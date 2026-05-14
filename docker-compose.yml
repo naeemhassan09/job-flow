@@ -42,6 +42,10 @@ services:
       - ./config:/srv/config
       - ./data:/srv/data
       - ./alembic.ini:/srv/alembic.ini:ro
+      # Bind-mount .env so the auto-generated PII_ENCRYPTION_KEY persists across
+      # restarts (otherwise the container regenerates the key every boot, which
+      # invalidates anything encrypted with the old one — notably the auth hash).
+      - ./.env:/srv/.env
     command:
       [
         "uvicorn", "app.main:app",

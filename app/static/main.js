@@ -125,10 +125,40 @@ function renderDetail(job) {
 
   node.querySelector(".job-source-pill").textContent = job.source;
   node.querySelector(".job-status-pill").textContent = job.triage_status;
+  const jobAppPill = node.querySelector(".job-app-status-pill");
+  if (job.application_status) {
+    jobAppPill.textContent = job.application_status.replace(/_/g, " ");
+    jobAppPill.classList.add(job.application_status);
+  } else {
+    jobAppPill.remove();
+  }
   if (job.scraped_at) {
     node.querySelector(".job-captured").textContent =
       `captured ${new Date(job.scraped_at).toLocaleString()}`;
   }
+
+  // Delete button
+  node.querySelector('[data-action="delete-job"]').addEventListener("click", async () => {
+    const label = `${job.title || "this job"} @ ${job.company || "—"}`;
+    if (!confirm(`Delete "${label}" from the inbox?\n\nThis cannot be undone.`)) return;
+    try {
+      const r = await fetch(`/api/jobs/${job.id}`, {
+        method: "DELETE",
+        credentials: "same-origin",
+      });
+      if (!r.ok) {
+        const body = await r.text();
+        let detail = body;
+        try { detail = JSON.parse(body).detail || body; } catch { /* not JSON */ }
+        alert(`Delete failed: HTTP ${r.status} — ${detail}`);
+        return;
+      }
+      state.selectedId = null;
+      await loadList();
+    } catch (e) {
+      alert(`Delete failed: ${e.message}`);
+    }
+  });
 
   // Score block
   const scoreNum = node.querySelector(".score-num");

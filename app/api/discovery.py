@@ -113,6 +113,33 @@ async def list_jobs(
     ]
 
 
+@router.delete("/jobs/{job_id}", status_code=204)
+async def delete_job(
+    job_id: str, session: AsyncSession = Depends(get_session)
+) -> None:
+    """Remove a discovered_jobs row entirely.
+
+    Cascades any FK to the applications table by detaching application_id first
+    (the FK has no ON DELETE CASCADE in V1, by design — we don't want a
+    discovered-job delete to nuke a real application). If a promoted application
+    exists, the user must delete it via the applications API first.
+    """
+    try:
+        uid = uuid.UUID(job_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail="invalid job id") from e
+    row = await session.get(DiscoveredJob, uid)
+    if row is None:
+        raise HTTPException(status_code=404, detail="job not found")
+    if row.application_id is not None:
+        raise HTTPException(
+            status_code=409,
+            detail="this discovered_job is linked to an application; detach or delete the application first",
+        )
+    await session.delete(row)
+    await session.commit()
+
+
 @router.get("/jobs/{job_id}")
 async def get_job(
     job_id: str, session: AsyncSession = Depends(get_session)

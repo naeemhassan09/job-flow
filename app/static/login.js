@@ -1,6 +1,7 @@
-// Login + first-run setup page. If the server reports no admin yet, render
-// the setup form (asks for new username + password twice); otherwise render
-// the standard login form.
+// Login + first-run setup page. Asks the backend whether an admin exists
+// before deciding which form to show; the confirm-password field is fully
+// removed from the DOM in login mode so it cannot accidentally be submitted
+// or trigger a browser autofill prompt.
 
 const els = {
   form: document.getElementById("auth-form"),
@@ -14,7 +15,13 @@ const els = {
   footer: document.getElementById("auth-footer"),
 };
 
-let mode = "login"; // or "init"
+let mode = null; // "login" | "init" — null while detecting
+
+// Hide everything until detectMode() decides what to render. Avoids a flash
+// of the confirm field on slow networks.
+els.form.style.visibility = "hidden";
+els.confirmField.remove();      // physically removed; re-attached only if needed
+els.confirm.removeAttribute("required");
 
 async function api(path, init) {
   const r = await fetch(path, {
@@ -37,27 +44,44 @@ function setStatus(text, kind) {
   els.status.className = `status ${kind || ""}`;
 }
 
+function applyLoginMode() {
+  mode = "login";
+  els.subtitle.textContent = "Sign in to continue";
+  els.password.setAttribute("autocomplete", "current-password");
+  els.password.value = "";
+  els.submit.textContent = "Sign in";
+  els.footer.textContent =
+    "Local single-user system — no signups, no password resets via email.";
+  els.form.style.visibility = "visible";
+}
+
+function applyInitMode() {
+  mode = "init";
+  els.subtitle.textContent = "Set up the admin account";
+  // Insert the confirm field after the password field
+  els.password.parentElement.insertAdjacentElement("afterend", els.confirmField);
+  els.confirmField.style.display = "";
+  els.confirm.setAttribute("required", "");
+  els.password.setAttribute("autocomplete", "new-password");
+  els.password.value = "";
+  els.confirm.value = "";
+  els.submit.textContent = "Create account & sign in";
+  els.username.value = els.username.value || "admin";
+  els.footer.textContent =
+    "First-time setup — these credentials only work on this local install.";
+  els.form.style.visibility = "visible";
+}
+
 async function detectMode() {
   try {
     const s = await api("/api/auth/status");
-    mode = s.initialised ? "login" : "init";
+    if (s.initialised) {
+      applyLoginMode();
+    } else {
+      applyInitMode();
+    }
   } catch {
-    mode = "login";
-  }
-
-  if (mode === "init") {
-    els.subtitle.textContent = "Set up the admin account";
-    els.confirmField.style.display = "";
-    els.password.setAttribute("autocomplete", "new-password");
-    els.submit.textContent = "Create account & sign in";
-    els.username.value = "admin";
-    els.footer.textContent = "First-time setup — these credentials only work on this local install.";
-  } else {
-    els.subtitle.textContent = "Sign in to continue";
-    els.confirmField.style.display = "none";
-    els.password.setAttribute("autocomplete", "current-password");
-    els.submit.textContent = "Sign in";
-    els.footer.textContent = "Local single-user system — no signups, no password resets via email.";
+    applyLoginMode();
   }
 }
 
@@ -85,7 +109,10 @@ async function handleSubmit(e) {
   setStatus(mode === "init" ? "Creating account…" : "Signing in…", "");
   try {
     const path = mode === "init" ? "/api/auth/init" : "/api/auth/login";
-    await api(path, { method: "POST", body: JSON.stringify({ username, password }) });
+    await api(path, {
+      method: "POST",
+      body: JSON.stringify({ username, password }),
+    });
     setStatus("Success. Redirecting…", "ok");
     const next = new URLSearchParams(location.search).get("next") || "/ui/";
     window.location.replace(next);

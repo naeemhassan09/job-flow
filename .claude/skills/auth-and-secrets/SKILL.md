@@ -1,11 +1,11 @@
 ---
 name: auth-and-secrets
-description: Use BEFORE adding any new API endpoint, UI page, secret-reading code, or any change to auth/login/session/cookies/CORS/bearer-token in CareerOS AI. Enforces the spec §25.4 invariants — default-deny auth, settings_store precedence, never hardcode keys, never log secrets.
+description: Use BEFORE adding any new API endpoint, UI page, secret-reading code, or any change to auth/login/session/cookies/CORS/bearer-token in CareerOS AI. Enforces the spec Section 25.4 invariants — default-deny auth, settings_store precedence, never hardcode keys, never log secrets.
 ---
 
 # auth-and-secrets — CareerOS AI session + settings invariants
 
-CareerOS AI ships a single-user session-auth model + an encrypted settings store (spec §25.4). Three invariants must hold across the codebase.
+CareerOS AI ships a single-user session-auth model + an encrypted settings store (spec Section 25.4). Three invariants must hold across the codebase.
 
 ## Invariant 1 — New endpoints are auth-gated by default
 
@@ -37,7 +37,7 @@ Helper: `app.settings_store.effective_secret(name, env_value)` does steps 1+2 in
 
 ## When you touch auth/settings code
 
-- Re-read [spec §25.4](../../product-requirements/CareerOS_AI_Product_Spec_v2.md) before changing the cookie TTL, the whitelist, or the encryption scheme.
+- Re-read [spec Section 25.4](../../product-requirements/CareerOS_AI_Product_Spec_v2.md) before changing the cookie TTL, the whitelist, or the encryption scheme.
 - Bcrypt rounds is currently 12 — don't lower without raising a separate flag.
 - Cookie attributes (`HttpOnly`, `SameSite=lax`, `Secure` in prod) come from `auth.cookie_kwargs()` — keep that the only seam.
 - The bearer-token path for `/api/captures` is **separate** from session auth on purpose; don't try to unify them.

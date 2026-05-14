@@ -36,7 +36,7 @@ Check:
 
 ## Invariant 3 — Encrypted settings stay encrypted at rest, masked in responses
 
-Since spec §25.4, runtime-editable secrets live in `app_settings` (AES-GCM with `PII_ENCRYPTION_KEY`). When extending the settings API:
+Since spec Section 25.4, runtime-editable secrets live in `app_settings` (AES-GCM with `PII_ENCRYPTION_KEY`). When extending the settings API:
 
 - `GET /api/settings` (and any list/inspection endpoint) MUST mask values where `is_secret=true` (return `••••••••` or last-4 only). Never return the cleartext.
 - Editing a setting goes through `app.settings_store.put` — the cleartext lives in memory only during the request and is encrypted before persistence.

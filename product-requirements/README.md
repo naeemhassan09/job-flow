@@ -16,5 +16,5 @@ Source of truth for what CareerOS AI is, why, and what's in vs. out. When code a
 ## How to use these docs
 
 - **Before writing code**: read the relevant spec section. If the spec is ambiguous, raise it as a PR comment before implementing.
-- **When scope creeps**: re-read spec §3 (IN vs. OUT) and §22 (anti-patterns). The spec is opinionated for a reason.
+- **When scope creeps**: re-read spec Section 3 (IN vs. OUT) and Section 22 (anti-patterns). The spec is opinionated for a reason.
 - **When updating docs**: docs change in the same PR as the code they describe.

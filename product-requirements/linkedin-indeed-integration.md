@@ -2,7 +2,7 @@
 
 ## Why not scrape
 
-The spec bans automated scraping of LinkedIn and Indeed (§3.3, §22). LinkedIn's User Agreement §8.2 and Indeed's ToS both prohibit scripted access. Direct scrapers are a portfolio liability, not an asset. The authorised paths for proactive discovery are the **Adzuna** and **Reed** official APIs (see [ARCHITECTURE.md](ARCHITECTURE.md)). For LinkedIn and Indeed specifically, we use a **Chrome extension companion**.
+The spec bans automated scraping of LinkedIn and Indeed (Section 3.3, Section 22). LinkedIn's User Agreement Section 8.2 and Indeed's ToS both prohibit scripted access. Direct scrapers are a portfolio liability, not an asset. The authorised paths for proactive discovery are the **Adzuna** and **Reed** official APIs (see [ARCHITECTURE.md](ARCHITECTURE.md)). For LinkedIn and Indeed specifically, we use a **Chrome extension companion**.
 
 ## What's shipped (V1, 2026-05-14)
 

@@ -757,22 +757,22 @@ CareerOS AI's reference deployment targets **jobs in Ireland (`ie`)**. This is t
 
 **Country is a single configurable knob** — `default_country` in `config/profile.yml`. Changing it (plus the `locations[]` entries) retargets the system to another market. The architecture is country-agnostic; only the *defaults* are Ireland-tuned. Never hardcode country assumptions in code — read from `UserProfile.default_country` or `SearchLocation.country`.
 
-### 25.2 Partner-API job discovery — IN (overrides §3.2)
+### 25.2 Partner-API job discovery — IN (overrides Section 3.2)
 
-The original §3.2 cut "all scraping" wholesale. User direction on 2026-05-14 narrowed this:
+The original Section 3.2 cut "all scraping" wholesale. User direction on 2026-05-14 narrowed this:
 
 - **IN**: Adzuna API (developer.adzuna.com), Reed API (reed.co.uk/developers). Both are official partner APIs with free tiers and explicit ToS permitting our use.
 - **STILL OUT**: LinkedIn, Indeed, or any site whose ToS forbids automated access. These flow in via the Chrome extension companion (Week 5), which captures the JD text from a tab the user is already viewing.
 
 Discovered jobs land in a new `discovered_jobs` table (deduped on `(source, external_id)`), auto-run through `preprocess + matcher` only (no generator at discovery time → cost stays bounded), and only `fit_score >= 70` rows are promoted to real `applications`.
 
-### 25.3 MongoDB allowed for principled cases (overrides §22 anti-pattern #5)
+### 25.3 MongoDB allowed for principled cases (overrides Section 22 anti-pattern #5)
 
 The original anti-pattern said "no Mongo, Postgres only" full stop. User direction on 2026-05-14 narrowed: Mongo is allowed when *clearly* better for a specific use case (e.g. large raw HTML capture from the Week-3 research loop). Postgres remains the default; switching requires a stated reason in the PR/commit, not aesthetic preference. See `feedback_datastore_choice` memory.
 
 ### 25.4 Single-user session auth + encrypted settings store (2026-05-14)
 
-The original spec assumed single-user with no auth (§3.2 implicit). User direction on 2026-05-14: because a Settings page now exposes editable API keys and model overrides, the UI and API must be gated behind a password.
+The original spec assumed single-user with no auth (Section 3.2 implicit). User direction on 2026-05-14: because a Settings page now exposes editable API keys and model overrides, the UI and API must be gated behind a password.
 
 **What ships:**
 
@@ -798,7 +798,7 @@ The original spec assumed single-user with no auth (§3.2 implicit). User direct
 
 ### 25.5 Settings UI + runtime-editable config (2026-05-14)
 
-Companion to §25.4. Realises spec §9's observability page and §7's router as user-tweakable surfaces:
+Companion to Section 25.4. Realises spec Section 9's observability page and Section 7's router as user-tweakable surfaces:
 
 - `GET /api/settings` — returns the full editable tree. Secrets are masked (`sk-•••••345`) and tagged with their source (`db` / `env` / unset). The cleartext is never returned by any GET.
 - `PUT /api/settings/{key}` — upserts. Empty value deletes the row → reverts to env. Allowed keys are explicitly whitelisted in `app.api.settings._ALLOWED_BARE_KEYS` + the `model.<task>.<default|fallback>` pattern; anything else 400s.
@@ -813,7 +813,7 @@ Companion to §25.4. Realises spec §9's observability page and §7's router as 
 
 ### 25.6 Application lifecycle tracker — manual entry (2026-05-14)
 
-Realises the §17 week-5 "tracker" gap as user-facing functionality. All entry is **manual** — no automation infers or sets status. This is deliberate: at single-user scale, automation invents data; manual entry gives ground truth for the eval harness (week 4) and respects job-search nuance (e.g. "ghosted at week 3 then suddenly responded" is not modellable).
+Realises the Section 17 week-5 "tracker" gap as user-facing functionality. All entry is **manual** — no automation infers or sets status. This is deliberate: at single-user scale, automation invents data; manual entry gives ground truth for the eval harness (week 4) and respects job-search nuance (e.g. "ghosted at week 3 then suddenly responded" is not modellable).
 
 **Schema** (migration `0005_application_lifecycle`):
 

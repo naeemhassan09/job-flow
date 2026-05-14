@@ -5,16 +5,16 @@
 
 ## Summary
 
-Builds the reusable LLM-platform layer that the LangGraph workflow (Week 2) will sit on. This is the spec §17 Week 1 checkpoint — these primitives alone form a small standalone LLM-platform library.
+Builds the reusable LLM-platform layer that the LangGraph workflow (Week 2) will sit on. This is the spec Section 17 Week 1 checkpoint — these primitives alone form a small standalone LLM-platform library.
 
 - Provider abstraction (OpenAI + Anthropic) behind a single `LLMProvider` Protocol
-- Cost-aware router with §7.2 task→model table and automatic fallback on error
+- Cost-aware router with Section 7.2 task→model table and automatic fallback on error
 - `BudgetGuard` with monthly + per-workflow caps, raises `BudgetExceeded`
 - USD→EUR cost calculator with Anthropic cached-token pricing
 - PII redactor (email, phone, address, PPSN, doc number, candidate name)
 - Injection regex pre-filter with 15-attack regression set
 - Structured JSON logger with defensive PII scrub processor
-- SQLAlchemy 2.x async models per §13
+- SQLAlchemy 2.x async models per Section 13
 - FastAPI app with `/healthz` (DB ping) and `/metrics` (Prometheus)
 - CI: ruff lint+format, mypy --strict, pytest + coverage, scope-guard for `legacy/` imports
 
@@ -28,7 +28,7 @@ Builds the reusable LLM-platform layer that the LangGraph workflow (Week 2) will
 - [x] `pytest tests/test_budget_guard.py` — both caps enforced, precheck and post-record
 - [x] Local smoke run (no deps): all five pure-Python modules pass
 
-## Acceptance checks (spec §17 W1)
+## Acceptance checks (spec Section 17 W1)
 
 - [x] FastAPI skeleton with `/healthz` (returns DB status) and `/metrics`
 - [x] Postgres + docker-compose

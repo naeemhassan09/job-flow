@@ -90,7 +90,7 @@ product-requirements/  PRD + spec + architecture + threat model
 
 ## Application lifecycle (manual)
 
-`discovered_jobs.application_status` is a free-form-ish enum (`bookmarked`, `applied`, `screening`, `interview`, `offer`, `accepted`, `rejected`, `ghosted`, `withdrawn`, `not_applying`). **Every status change is user-initiated** — there is no automation that reads emails, calendar, Slack, or any external signal to infer state. This is deliberate per spec §25.6: manual entry gives ground truth for the eval harness and respects job-search nuance.
+`discovered_jobs.application_status` is a free-form-ish enum (`bookmarked`, `applied`, `screening`, `interview`, `offer`, `accepted`, `rejected`, `ghosted`, `withdrawn`, `not_applying`). **Every status change is user-initiated** — there is no automation that reads emails, calendar, Slack, or any external signal to infer state. This is deliberate per spec Section 25.6: manual entry gives ground truth for the eval harness and respects job-search nuance.
 
 When adding code that touches lifecycle:
 
@@ -135,7 +135,7 @@ If a change is risky (DB destructive op, secret rotation, prod config), open a s
 
 ## What's IN and OUT of V1
 
-See spec §3. Quick reference of common "should we add this?" answers:
+See spec Section 3. Quick reference of common "should we add this?" answers:
 
 | Idea | V1? |
 |---|---|
