@@ -1,31 +1,58 @@
-services:
-  postgres:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_USER: careeros
-      POSTGRES_PASSWORD: careeros
-      POSTGRES_DB: careeros
-    ports:
-      - "5432:5432"
-    volumes:
-      - careeros_pg:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U careeros -d careeros"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
+# CareerOS AI — local development stack.
+#
+# Runs the FastAPI app in a container that mounts the source tree so any
+# edit to app/, config/, or evals/ triggers uvicorn --reload inside the
+# container. The container talks to the Postgres already running on your
+# host machine (postgres:admin123@host.docker.internal:5432/careeros) so
+# your existing captures and migrations persist across container restarts.
+#
+# Usage:
+#   docker compose up -d         # start in background
+#   docker compose logs -f app   # follow logs
+#   docker compose restart app   # rare — only needed if you touch .env
+#   docker compose down          # stop everything
+#
+# If you want a fully self-contained stack (Postgres in a container too),
+# see docker-compose.full.yml — not enabled by default to avoid losing
+# your existing host-Postgres data.
 
+services:
   app:
     build: .
-    depends_on:
-      postgres:
-        condition: service_healthy
+    image: careeros-app:dev
+    container_name: careeros-app
+    restart: unless-stopped
     env_file: .env
     environment:
-      DATABASE_URL: postgresql+asyncpg://careeros:careeros@postgres:5432/careeros
+      # Override DATABASE_URL so the container talks to your host Postgres
+      # via Docker's special hostname. .env keeps the localhost form for
+      # native (non-container) runs.
+      DATABASE_URL: postgresql+asyncpg://postgres:admin123@host.docker.internal:5432/careeros
+      APP_LOG_LEVEL: INFO
+      PYTHONUNBUFFERED: "1"
     ports:
       - "8000:8000"
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
-
-volumes:
-  careeros_pg:
+    extra_hosts:
+      # Lets `host.docker.internal` resolve on Linux too (already works on macOS/Windows).
+      - "host.docker.internal:host-gateway"
+    volumes:
+      # Mount source tree so uvicorn --reload picks up edits instantly.
+      - ./app:/srv/app
+      - ./evals:/srv/evals
+      - ./config:/srv/config
+      - ./data:/srv/data
+      - ./alembic.ini:/srv/alembic.ini:ro
+    command:
+      [
+        "uvicorn", "app.main:app",
+        "--host", "0.0.0.0",
+        "--port", "8000",
+        "--reload",
+        "--reload-dir", "/srv/app"
+      ]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz').read()"]
+      interval: 10s
+      timeout: 4s
+      retries: 5
+      start_period: 15s

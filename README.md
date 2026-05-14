@@ -22,23 +22,47 @@ LinkedIn and Indeed are **never** scraped, regardless of country. They flow in t
 
 Active development — week 2 + scope-expanded job discovery shipped. See [ROADMAP.md](product-requirements/ROADMAP.md) for what's next.
 
-## Quick start (local)
+## Quick start
+
+### Recommended: Docker (stays running, hot-reload on file changes)
 
 ```bash
-# 1. Copy env, fill in OPENAI_API_KEY at minimum. Adzuna + Reed keys
-#    are optional — discovery degrades gracefully without them.
+# 1. Copy env, fill in OPENAI_API_KEY at minimum.
 cp .env.example .env
 
-# 2. Stand up Postgres (local install or docker compose up -d postgres)
-#    then create the database and run migrations.
-createdb careeros
+# 2. Make sure your local Postgres has a `careeros` database with the migrations
+#    applied. The container talks to your host Postgres via host.docker.internal
+#    so the data persists across container restarts.
+createdb careeros 2>/dev/null || true
 .venv/bin/alembic upgrade head
 
-# 3. Copy the example profile, edit it for you, point cv_path at your CV.
-cp config/profile.example.yml config/profile.yml
+# 3. Build and start the app container.
+docker compose up -d --build app
 
-# 4. Run the API.
-.venv/bin/uvicorn app.main:app --reload
+# Logs / common ops
+docker compose logs -f app          # tail logs
+docker compose restart app          # only needed if .env changed
+docker compose down                 # stop
+docker compose up -d                # start again
+
+# Open the inbox
+open http://127.0.0.1:8000/ui/
+```
+
+Source folders (`app/`, `evals/`, `config/`, `data/`) are bind-mounted into the
+container, so any code edit triggers `uvicorn --reload` inside the container —
+you don't restart manually. The only changes that need a container restart are
+`.env` edits (`docker compose restart app`).
+
+### Native Python (without Docker)
+
+```bash
+cp .env.example .env
+createdb careeros
+.venv/bin/pip install -e ".[dev]"
+.venv/bin/alembic upgrade head
+cp config/profile.example.yml config/profile.yml
+.venv/bin/uvicorn app.main:app --reload --reload-dir app
 ```
 
 API surface:
