@@ -1,0 +1,203 @@
+/* Settings page — same Claude palette, table-ish rows with inline actions. */
+
+.settings-main {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 28px 32px 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.panel-head p { margin: 4px 0 0; line-height: 1.5; }
+.panel-head code {
+  background: var(--panel-elev);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+.settings-grid {
+  display: flex;
+  flex-direction: column;
+}
+.settings-grid .empty-row { padding: 16px 22px; }
+
+/* Generic key/value row used by API keys and budgets. */
+.kv-row {
+  display: grid;
+  grid-template-columns: 230px 1fr auto;
+  grid-template-areas:
+    "label value actions"
+    "status status status";
+  align-items: center;
+  gap: 14px;
+  padding: 12px 22px;
+  border-bottom: 1px solid var(--border);
+}
+.kv-row:last-child { border-bottom: 0; }
+@media (max-width: 720px) {
+  .kv-row {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "label label"
+      "value value"
+      "actions actions"
+      "status status";
+  }
+}
+
+.kv-label {
+  grid-area: label;
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--fg);
+  line-height: 1.35;
+}
+.kv-value {
+  grid-area: value;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.kv-input {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 10px;
+  font: inherit;
+  font-size: 13px;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--fg);
+}
+.kv-input:focus {
+  outline: 2px solid var(--accent-soft);
+  border-color: var(--accent);
+}
+.kv-source-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 10.5px;
+  text-transform: lowercase;
+  letter-spacing: 0.04em;
+  background: var(--panel-elev);
+  color: var(--muted);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.kv-source-pill.db { background: var(--accent-soft); color: var(--accent); }
+.kv-source-pill.env { background: var(--ok-bg); color: var(--ok); }
+.kv-source-pill.unset { background: var(--border); color: var(--faint); }
+.kv-source-pill.override { background: var(--accent-soft); color: var(--accent); }
+.kv-source-pill.spec { background: var(--panel-elev); color: var(--muted); }
+
+.kv-show {
+  padding: 4px 8px;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.kv-actions {
+  grid-area: actions;
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.kv-actions button { padding: 6px 12px; font-size: 12px; }
+.kv-status {
+  grid-area: status;
+  font-size: 12px;
+  min-height: 1.2em;
+}
+.kv-status.ok { color: var(--ok); }
+.kv-status.err { color: var(--err); }
+
+/* Models per task — wider rows with two selects. */
+.model-row {
+  display: grid;
+  grid-template-columns: 180px 1fr 1fr auto;
+  grid-template-areas:
+    "task default fallback actions"
+    "status status status status";
+  gap: 14px;
+  align-items: center;
+  padding: 14px 22px;
+  border-bottom: 1px solid var(--border);
+}
+.model-row:last-child { border-bottom: 0; }
+@media (max-width: 760px) {
+  .model-row {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "task"
+      "default"
+      "fallback"
+      "actions"
+      "status";
+  }
+}
+.model-task {
+  grid-area: task;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--fg);
+  text-transform: lowercase;
+  letter-spacing: 0.04em;
+}
+.model-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.model-cell[data-which-row="default"] { grid-area: default; }
+.model-cell:nth-of-type(1) { grid-area: default; }
+.model-cell:nth-of-type(2) { grid-area: fallback; }
+.model-cell label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.model-select {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 8px;
+  font: inherit;
+  font-size: 12.5px;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--fg);
+}
+
+/* Change-password form */
+.pw-form {
+  padding: 16px 22px 18px;
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 12px 14px;
+  align-items: end;
+}
+@media (max-width: 720px) {
+  .pw-form { grid-template-columns: 1fr; }
+}
+.pw-form .field input {
+  padding: 7px 10px;
+  font: inherit;
+  font-size: 13px;
+}
+.pw-form button.primary { padding: 8px 14px; }
+#pw-status { grid-column: 1 / -1; min-height: 1.2em; }
+#pw-status.ok { color: var(--ok); }
+#pw-status.err { color: var(--err); }
+
+/* Logout button in topbar */
+.topbar #logout { margin-left: 8px; }

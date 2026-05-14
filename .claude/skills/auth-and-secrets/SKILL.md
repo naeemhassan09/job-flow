@@ -30,9 +30,10 @@ Helper: `app.settings_store.effective_secret(name, env_value)` does steps 1+2 in
 ## Invariant 3 — Secrets never appear in logs, traces, or responses
 
 - Log line that includes any user-supplied string must pass through `app.observability.scrub.scrub_pii`.
-- API responses that list settings (`GET /api/settings`) must **mask** values (`is_secret: true` → return `••••••••` or last-4 only, never the cleartext).
+- `GET /api/settings` masks values via `app.api.settings._mask` (`sk-•••••345` shape; first 3 + last 3 chars). Never return cleartext from a GET. The contract is asserted by `tests/test_settings_store.py::test_mask_preview_helper_handles_short_and_long_secrets`.
 - LangSmith metadata explicitly excludes auth headers.
-- A test (`tests/test_logs_no_pii.py`) asserts the scrubber works; add cases when you add new secret-shaped fields.
+- `PUT /api/settings/{key}` validates the key against `_ALLOWED_BARE_KEYS` plus the `model.<task>.<default|fallback>` pattern. Anything else 400s — extending requires touching the allow-list explicitly.
+- The Settings UI may *display* an unmasked value briefly when the user clicks the 👁 "Show" toggle on a key they just typed; that's a transient client-side state. The server never sees `Show=true`.
 
 ## When you touch auth/settings code
 

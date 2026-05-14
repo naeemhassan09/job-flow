@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CareerOS AI — Settings</title>
+    <link rel="stylesheet" href="/ui/styles.css" />
+    <link rel="stylesheet" href="/ui/usage.css" />
+    <link rel="stylesheet" href="/ui/settings.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <h1 class="serif">CareerOS AI <span class="muted">— Settings</span></h1>
+      <nav class="topnav">
+        <a href="/ui/" class="navlink">Inbox</a>
+        <a href="/ui/usage.html" class="navlink">Usage</a>
+        <a href="/ui/settings.html" class="navlink active">Settings</a>
+      </nav>
+      <button id="logout" class="ghost" title="Sign out">Sign out</button>
+    </header>
+
+    <main class="settings-main">
+      <section class="panel">
+        <header class="panel-head">
+          <h2 class="serif">API keys</h2>
+          <p class="muted small">
+            Stored AES-GCM encrypted in the database. DB value overrides anything
+            in <code>.env</code> — leave a field blank to fall back to the env var.
+          </p>
+        </header>
+        <div id="api-keys" class="settings-grid">
+          <div class="muted small empty-row">Loading…</div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <header class="panel-head">
+          <h2 class="serif">Models per task</h2>
+          <p class="muted small">
+            Override the spec §7.2 routing table per task. Provider fallback fires
+            automatically if the default errors.
+          </p>
+        </header>
+        <div id="models-table" class="settings-grid">
+          <div class="muted small empty-row">Loading…</div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <header class="panel-head">
+          <h2 class="serif">Budgets</h2>
+          <p class="muted small">
+            Monthly cap and per-workflow soft cap. The Budget Guard reads these
+            before every LLM call.
+          </p>
+        </header>
+        <div id="budgets" class="settings-grid">
+          <div class="muted small empty-row">Loading…</div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <header class="panel-head">
+          <h2 class="serif">Change password</h2>
+        </header>
+        <form id="pw-form" class="pw-form">
+          <label class="field">
+            Current password
+            <input type="password" id="pw-old" autocomplete="current-password" required />
+          </label>
+          <label class="field">
+            New password (≥ 8 chars)
+            <input type="password" id="pw-new" autocomplete="new-password" minlength="8" required />
+          </label>
+          <button class="primary" type="submit">Change password</button>
+          <span id="pw-status" class="status small"></span>
+        </form>
+      </section>
+    </main>
+
+    <template id="key-row-template">
+      <div class="kv-row">
+        <label class="kv-label"></label>
+        <div class="kv-value">
+          <input type="password" class="kv-input" autocomplete="off" placeholder="" />
+          <span class="kv-source-pill"></span>
+          <button class="ghost kv-show" type="button" title="Show / hide">👁</button>
+        </div>
+        <div class="kv-actions">
+          <button class="primary kv-save" type="button">Save</button>
+          <button class="ghost kv-test" type="button">Test</button>
+          <button class="ghost kv-clear" type="button" title="Delete from DB (revert to .env)">↺</button>
+        </div>
+        <div class="kv-status status small" role="status"></div>
+      </div>
+    </template>
+
+    <template id="model-row-template">
+      <div class="model-row">
+        <div class="model-task"></div>
+        <div class="model-cell">
+          <label class="muted small">Default</label>
+          <select class="model-select" data-which="default"></select>
+          <span class="kv-source-pill"></span>
+        </div>
+        <div class="model-cell">
+          <label class="muted small">Fallback</label>
+          <select class="model-select" data-which="fallback"></select>
+          <span class="kv-source-pill"></span>
+        </div>
+        <div class="kv-actions">
+          <button class="primary model-save" type="button">Save</button>
+          <button class="ghost model-reset" type="button" title="Use spec default">↺</button>
+        </div>
+        <div class="kv-status status small" role="status"></div>
+      </div>
+    </template>
+
+    <template id="budget-row-template">
+      <div class="kv-row">
+        <label class="kv-label"></label>
+        <div class="kv-value">
+          <input type="text" class="kv-input" inputmode="decimal" />
+          <span class="kv-source-pill"></span>
+        </div>
+        <div class="kv-actions">
+          <button class="primary kv-save" type="button">Save</button>
+          <button class="ghost kv-clear" type="button" title="Delete from DB (revert to .env)">↺</button>
+        </div>
+        <div class="kv-status status small" role="status"></div>
+      </div>
+    </template>
+
+    <script src="/ui/settings.js"></script>
+  </body>
+</html>

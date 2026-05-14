@@ -84,8 +84,12 @@ API surface:
 | `GET  /api/usage/{monthly,by-model,by-node,recent}` | Token + cost telemetry |
 | `POST /api/auth/{init,login,logout,change-password}` | Session auth (first run uses `/init`, then `/login`) |
 | `GET  /api/auth/{status,me}` | Auth introspection |
+| `GET  /api/settings` | All editable settings, secrets masked, session-protected |
+| `PUT  /api/settings/{key}` | Upsert a setting (empty value deletes → revert to .env) |
+| `POST /api/settings/test/{provider}` | Ping `openai` / `anthropic` / `tavily` / `adzuna` / `reed` with currently-configured creds |
 | `GET  /ui/` | Inbox UI (session-cookie protected) |
 | `GET  /ui/usage.html` | Usage dashboard (session-cookie protected) |
+| `GET  /ui/settings.html` | Settings page — API keys, model overrides, budgets, change password |
 | `GET  /ui/login.html` | Sign-in / first-run setup |
 | `GET  /docs` | OpenAPI / Swagger UI |
 
@@ -119,7 +123,11 @@ Single-user local auth with a session cookie:
    - `POST /api/captures` — bearer-token auth (`EXTENSION_API_TOKEN`) so the Chrome extension works without browser cookies
 4. To change password: log in, then `POST /api/auth/change-password` (will be wired into the settings page next).
 
-All API keys (OpenAI, Anthropic, Tavily, Adzuna, Reed), per-task model overrides, and budget caps will be editable from the Settings page, stored AES-GCM encrypted at rest with `PII_ENCRYPTION_KEY` (auto-generated on first run if not set).
+All API keys (OpenAI, Anthropic, Tavily, Adzuna, Reed, Chrome extension bearer, LangSmith), per-task model overrides, and budget caps are editable from `/ui/settings.html`. Values are AES-GCM encrypted at rest with `PII_ENCRYPTION_KEY` (auto-generated on first run if not set). Read precedence at runtime: **DB value if set → env var → hardcoded default**, so a UI edit takes effect immediately without restarting the app.
+
+### Quick test — does my OpenAI key work?
+
+On the Settings page → API keys section → click **Test** next to any provider. The backend hits the provider's own auth endpoint (e.g. `GET /v1/models` for OpenAI) with whichever value is currently effective (DB override > .env) and surfaces `connected` / `failed (HTTP 401)` inline.
 
 ## Non-goals
 

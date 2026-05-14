@@ -46,22 +46,48 @@ class Router:
         self._providers = providers
 
     async def route(self, task: Task, request: LLMRequest | None = None, **kwargs: object) -> LLMResponse:
-        route = ROUTES[task]
+        default_provider, default_model, fallback_provider, fallback_model = await _resolve_route(task)
         if request is None:
-            request = LLMRequest(model=route.default_model, **kwargs)  # type: ignore[arg-type]
+            request = LLMRequest(model=default_model, **kwargs)  # type: ignore[arg-type]
         ctx = _ctx_for_task(task)
         try:
-            provider = self._providers[route.default_provider]
+            provider = self._providers[default_provider]
             response = await provider.generate(
-                request.model_copy(update={"model": route.default_model})
+                request.model_copy(update={"model": default_model})
             )
         except Exception:
-            provider = self._providers[route.fallback_provider]
+            provider = self._providers[fallback_provider]
             response = await provider.generate(
-                request.model_copy(update={"model": route.fallback_model})
+                request.model_copy(update={"model": fallback_model})
             )
         await record_usage(response, ctx=ctx)
         return response
+
+
+async def _resolve_route(task: Task) -> tuple[str, str, str, str]:
+    """Resolve effective (provider, model) for default + fallback.
+
+    Checks app_settings for model.<task>.<default|fallback> overrides (set via
+    the Settings UI). Falls back to the spec §7.2 routing table baked into
+    ROUTES. If the settings DB is unreachable (e.g. in unit tests), the spec
+    defaults are returned silently — overrides are a runtime convenience, not
+    load-bearing.
+    """
+    base = ROUTES[task]
+    default_provider, default_model = base.default_provider, base.default_model
+    fallback_provider, fallback_model = base.fallback_provider, base.fallback_model
+    try:
+        from app.settings_store import get as _get_setting
+
+        if override := await _get_setting(f"model.{task}.default"):
+            if "/" in override:
+                default_provider, default_model = override.split("/", 1)
+        if override := await _get_setting(f"model.{task}.fallback"):
+            if "/" in override:
+                fallback_provider, fallback_model = override.split("/", 1)
+    except Exception:  # noqa: BLE001 — overrides degrade gracefully
+        pass
+    return default_provider, default_model, fallback_provider, fallback_model
 
 
 def _ctx_for_task(task: Task) -> CallContext | None:

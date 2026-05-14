@@ -39,6 +39,13 @@ Read precedence at request time: **DB value if present → env var → hardcoded
 
 When writing code that uses an API key or model name, **never** read directly from `os.environ` or `get_settings()` — go through `settings_store` so the user's UI overrides take effect without restarting.
 
+The user-facing surface for these settings is `/ui/settings.html` + `app/api/settings.py`. To expose a new editable setting:
+
+1. Add an entry to `API_KEY_FIELDS` / `BUDGET_FIELDS` in `app/api/settings.py`, or extend the `model.<task>.<which>` pattern. Anything else 400s on PUT (`_ALLOWED_BARE_KEYS` is an explicit allow-list).
+2. Update `Settings` (`app/config.py`) so the env-fallback path works.
+3. Update the consumer (provider / scraper / router) to read via `settings_store.effective_secret(name, env_value)`.
+4. Wrap the settings_store call in `try/except` if it sits in a hot path — overrides degrade gracefully when the DB isn't reachable (e.g. in unit tests).
+
 ## Non-negotiables (from the spec)
 
 1. **No autonomous outbound messaging.** No email, no DMs, no auto-apply.

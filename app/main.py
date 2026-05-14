@@ -16,6 +16,7 @@ from app.api import (
     health,
     job_actions,
     metrics,
+    settings as settings_api,
     usage,
 )
 from app.config import get_settings
@@ -85,6 +86,7 @@ def create_app() -> FastAPI:
     app.include_router(captures.router)
     app.include_router(job_actions.router)
     app.include_router(usage.router)
+    app.include_router(settings_api.router)
 
     app.mount("/ui", StaticFiles(directory=STATIC_DIR, html=True), name="ui")
 

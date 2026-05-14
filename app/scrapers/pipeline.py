@@ -51,7 +51,7 @@ async def discover_and_score(
     settings = settings or get_settings()
     profile = profile or load_profile()
 
-    scrapers = build_enabled_scrapers(settings, profile)
+    scrapers = await build_enabled_scrapers(settings, profile)
     if not scrapers:
         return PipelineReport(0, 0, 0, 0, 0, 0, ["no enabled scrapers (missing API credentials?)"])
 

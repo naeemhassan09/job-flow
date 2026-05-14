@@ -795,3 +795,18 @@ The original spec assumed single-user with no auth (§3.2 implicit). User direct
 **Settings precedence at runtime:** DB value (via `settings_store.get`) → env var → hardcoded default. Code that reads secrets or model names must go through `settings_store.effective_secret(name, env)` rather than `os.environ` or `get_settings()` directly, so UI overrides take effect without restarting the app.
 
 **Out of scope (explicit):** multi-user, SSO, RBAC, password reset via email, MFA. Single-user local app — none of these apply at V1 scale.
+
+### 25.5 Settings UI + runtime-editable config (2026-05-14)
+
+Companion to §25.4. Realises spec §9's observability page and §7's router as user-tweakable surfaces:
+
+- `GET /api/settings` — returns the full editable tree. Secrets are masked (`sk-•••••345`) and tagged with their source (`db` / `env` / unset). The cleartext is never returned by any GET.
+- `PUT /api/settings/{key}` — upserts. Empty value deletes the row → reverts to env. Allowed keys are explicitly whitelisted in `app.api.settings._ALLOWED_BARE_KEYS` + the `model.<task>.<default|fallback>` pattern; anything else 400s.
+- `POST /api/settings/test/{provider}` — connectivity check that hits the provider's own auth endpoint (`/v1/models` for OpenAI, `/v1/messages` for Anthropic, `/categories` for Adzuna, `/search` for Reed/Tavily) and returns `{ok, status, detail}`. Used by the **Test** buttons next to each key in the UI.
+- `/ui/settings.html` — three panels (API keys, Models per task, Budgets) plus a Change password form. All session-protected.
+
+**Runtime precedence:** every secret/model read now goes through `app.settings_store.effective_secret(name, env_value)` or `get(name)`. Router, OpenAI/Anthropic providers, and the scraper registry are all converted. UI edits take effect on the next call, no restart.
+
+**Lazy provider re-init**: `OpenAIProvider._ensure_client` / `AnthropicProvider._ensure_client` runs before every `generate()` and rebuilds the SDK client if the effective key changed. Safe because client construction is cheap.
+
+**Test-mode resilience**: settings_store reads inside hot paths swallow exceptions silently and fall back to spec defaults. This keeps unit tests passing without Postgres while still allowing the live app to honour UI overrides.

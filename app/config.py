@@ -45,6 +45,9 @@ class Settings(BaseSettings):
     adzuna_app_key: str = ""
     reed_api_key: str = ""
 
+    # Web-search provider for the research loop (added in week 3).
+    tavily_api_key: str = ""
+
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:

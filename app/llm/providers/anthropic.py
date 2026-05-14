@@ -4,6 +4,7 @@ import time
 
 from anthropic import AsyncAnthropic
 
+from app.config import get_settings
 from app.llm.cost import estimate_eur
 from app.llm.types import LLMRequest, LLMResponse
 
@@ -12,9 +13,25 @@ class AnthropicProvider:
     name = "anthropic"
 
     def __init__(self, api_key: str) -> None:
-        self._client = AsyncAnthropic(api_key=api_key)
+        self._env_key = api_key
+        self._client = AsyncAnthropic(api_key=api_key or "placeholder")
+        self._current_key = api_key
+
+    async def _ensure_client(self) -> None:
+        try:
+            from app.settings_store import effective_secret
+
+            resolved = await effective_secret(
+                "anthropic_api_key", self._env_key or get_settings().anthropic_api_key
+            )
+        except Exception:  # noqa: BLE001 — fall back to construction-time key
+            return
+        if resolved and resolved != self._current_key:
+            self._client = AsyncAnthropic(api_key=resolved)
+            self._current_key = resolved
 
     async def generate(self, request: LLMRequest) -> LLMResponse:
+        await self._ensure_client()
         started = time.perf_counter()
         response = await self._client.messages.create(
             model=request.model,
