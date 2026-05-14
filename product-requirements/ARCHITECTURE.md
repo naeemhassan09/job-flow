@@ -1,5 +1,16 @@
 # Architecture
 
+## Geography
+
+CareerOS AI is **Ireland-first** in V1. Defaults across the stack assume the Irish market:
+
+- `default_country: ie` in [`config/profile.yml`](../config/profile.example.yml).
+- Scraper queries hit Adzuna IE + Reed (UK/IE coverage).
+- Cover-letter prompts include Stamp 1G + Critical Skills Permit context.
+- Budgets and salary fields are in EUR.
+
+Country is a single configurable knob (`default_country` + `locations[]`). Code reads country from `UserProfile.default_country` / `SearchLocation.country` — never hardcoded. See spec §25.1.
+
 ## System diagram
 
 ```text

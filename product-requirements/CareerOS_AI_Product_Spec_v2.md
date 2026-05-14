@@ -739,3 +739,33 @@ If any answer is "no," V1 isn't done.
 ---
 
 *End of v2 spec. Tighter, more honest, more hireable, and still genuinely useful for the author's own job search.*
+
+---
+
+## 25. Addenda (post-spec amendments)
+
+Amendments to the v2 spec are logged here so the master document stays authoritative as scope evolves.
+
+### 25.1 Ireland-first geography (2026-05-14)
+
+CareerOS AI's reference deployment targets **jobs in Ireland (`ie`)**. This is the explicit V1 focus:
+
+- All cover-letter prompts include Stamp 1G / Critical Skills Permit context.
+- Salary thresholds and budget caps are in EUR.
+- Scraper queries default to Ireland.
+- Test fixtures use Ireland-relevant role titles.
+
+**Country is a single configurable knob** — `default_country` in `config/profile.yml`. Changing it (plus the `locations[]` entries) retargets the system to another market. The architecture is country-agnostic; only the *defaults* are Ireland-tuned. Never hardcode country assumptions in code — read from `UserProfile.default_country` or `SearchLocation.country`.
+
+### 25.2 Partner-API job discovery — IN (overrides §3.2)
+
+The original §3.2 cut "all scraping" wholesale. User direction on 2026-05-14 narrowed this:
+
+- **IN**: Adzuna API (developer.adzuna.com), Reed API (reed.co.uk/developers). Both are official partner APIs with free tiers and explicit ToS permitting our use.
+- **STILL OUT**: LinkedIn, Indeed, or any site whose ToS forbids automated access. These flow in via the Chrome extension companion (Week 5), which captures the JD text from a tab the user is already viewing.
+
+Discovered jobs land in a new `discovered_jobs` table (deduped on `(source, external_id)`), auto-run through `preprocess + matcher` only (no generator at discovery time → cost stays bounded), and only `fit_score >= 70` rows are promoted to real `applications`.
+
+### 25.3 MongoDB allowed for principled cases (overrides §22 anti-pattern #5)
+
+The original anti-pattern said "no Mongo, Postgres only" full stop. User direction on 2026-05-14 narrowed: Mongo is allowed when *clearly* better for a specific use case (e.g. large raw HTML capture from the Week-3 research loop). Postgres remains the default; switching requires a stated reason in the PR/commit, not aesthetic preference. See `feedback_datastore_choice` memory.

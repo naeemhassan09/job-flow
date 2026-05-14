@@ -1,5 +1,22 @@
 # User profile config — copy to profile.yml and fill in your details.
 # profile.yml is gitignored.
+#
+# =====================================================================
+# COUNTRY / GEOGRAPHY  ← THIS IS THE ONE KNOB TO CHANGE FOR OTHER MARKETS
+# =====================================================================
+# CareerOS AI defaults to IRELAND (`ie`). Both scraper sources (Adzuna,
+# Reed) are configured below for the Irish market.
+#
+# To target a different country:
+#   1. Change `default_country` to the new ISO-2 code (e.g. "gb", "de").
+#   2. Replace the entries in `locations[]` with city names that match.
+#   3. Reed only covers UK + IE; if you switch to another country it
+#      will simply return zero results — leave it enabled or set
+#      sources.reed.enabled: false.
+#
+# Adzuna supported countries: ie, gb, us, de, fr, au, ca, nl, pl, in,
+#                             za, br, mx, nz, sg.
+default_country: "ie"
 
 candidate:
   display_name: "Your Name"

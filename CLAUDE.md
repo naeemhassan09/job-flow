@@ -8,10 +8,21 @@ CareerOS AI is a **LangGraph-based agentic workflow platform**. The job-search u
 
 Full spec: [product-requirements/CareerOS_AI_Product_Spec_v2.md](product-requirements/CareerOS_AI_Product_Spec_v2.md). When the spec and this file disagree, the spec wins — fix this file.
 
+## Geography
+
+CareerOS AI is currently **Ireland-first** (`default_country: ie`). Defaults across the codebase assume the Irish market:
+
+- Scraper queries default to Ireland (Adzuna `ie`, Reed UK+IE).
+- Cover-letter prompts mention Stamp 1G / Critical Skills Permit context.
+- Salaries/budgets are in EUR.
+- The author is Dublin-based.
+
+**Country is a single knob**: `default_country` in `config/profile.yml`. Change it + the `locations[]` entries to target another market. Reed will return zero results outside UK/IE (disable it via `sources.reed.enabled: false`). Adzuna supports 15 countries. **Never hardcode country assumptions** in code — read from `UserProfile.default_country` or `SearchLocation.country`.
+
 ## Non-negotiables (from the spec)
 
 1. **No autonomous outbound messaging.** No email, no DMs, no auto-apply.
-2. **No scraping of LinkedIn/Indeed/job boards.** JDs come via paste, official APIs, or the browser-extension companion.
+2. **No scraping of LinkedIn/Indeed/job boards.** JDs come via paste, official APIs (Adzuna, Reed), or the browser-extension companion.
 3. **No fabrication.** Every CV bullet must be evidence-backed against the candidate profile.
 4. **No SQLite in "production" code paths.** Postgres from day one.
 5. **No embeddings / RAG in V1.** The CV+JD pair is one document each — structured prompting beats vector search.

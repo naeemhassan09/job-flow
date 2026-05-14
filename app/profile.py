@@ -60,6 +60,7 @@ class UserProfile:
     cover_letter_tone: str
     cover_letter_must_mention: list[str]
     cover_letter_forbid_phrases: list[str]
+    default_country: str            # ISO-2 default for all locations + scraper fallback (e.g. "ie")
     target_titles: TargetTitles
     keywords: Keywords
     red_flags: list[str]
@@ -89,6 +90,7 @@ def load_profile(path: str | None = None) -> UserProfile:
     cl = raw.get("cover_letter", {})
     profiles = raw.get("profiles", {})
 
+    default_country = str(raw.get("default_country") or "ie").lower()
     titles_raw = raw.get("target_titles") or {}
     kw_raw = raw.get("keywords") or {}
     locs_raw = raw.get("locations") or []
@@ -109,6 +111,7 @@ def load_profile(path: str | None = None) -> UserProfile:
         cover_letter_tone=cl.get("tone", ""),
         cover_letter_must_mention=list(cl.get("must_mention") or []),
         cover_letter_forbid_phrases=list(cl.get("forbid_phrases") or []),
+        default_country=default_country,
         target_titles=TargetTitles(
             primary=list(titles_raw.get("primary") or []),
             secondary=list(titles_raw.get("secondary") or []),
@@ -121,7 +124,7 @@ def load_profile(path: str | None = None) -> UserProfile:
         locations=[
             SearchLocation(
                 name=loc["name"],
-                country=loc.get("country", "ie"),
+                country=str(loc.get("country") or default_country).lower(),
                 remote_only=bool(loc.get("remote_only", False)),
             )
             for loc in locs_raw

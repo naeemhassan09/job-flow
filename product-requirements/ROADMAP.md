@@ -2,6 +2,8 @@
 
 6-week plan per spec §17. Updated at the end of each week.
 
+**Geography**: Ireland-first in V1. The single knob to retarget another country is `default_country` in [`config/profile.yml`](../config/profile.example.yml). See spec §25.1.
+
 ## Status
 
 | Week | Theme | Status |
