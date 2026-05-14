@@ -172,6 +172,17 @@ class DiscoveredJob(Base):
     #         decision_override: "apply"|"maybe"|"skip"|null, notes: str,
     #         reviewed_at: iso8601-string|null}
     human_feedback: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+
+    # Application lifecycle tracker — user-set, no automation.
+    # Status vocabulary: bookmarked, applied, screening, interview,
+    #                    offer, accepted, rejected, ghosted, withdrawn,
+    #                    not_applying. NULL = not yet triaged.
+    application_status: Mapped[str | None] = mapped_column(String(32), index=True)
+    applied_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    status_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # List of {at, status, note} entries appended on every status change.
+    status_history: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list)
+
     application_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("applications.id"), index=True
     )

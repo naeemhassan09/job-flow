@@ -88,6 +88,11 @@ function renderList() {
     }
     node.querySelector(".source-pill").textContent = job.source;
     node.querySelector(".status-pill").textContent = job.triage_status;
+    const appPill = node.querySelector(".app-status-pill");
+    if (job.application_status) {
+      appPill.textContent = job.application_status.replace(/_/g, " ");
+      appPill.classList.add(job.application_status);
+    }
     if (job.id === state.selectedId) node.classList.add("active");
     node.addEventListener("click", () => loadDetail(job.id));
     els.list.appendChild(node);
@@ -177,6 +182,74 @@ function renderDetail(job) {
     }
   });
 
+  // Lifecycle section
+  const lcStatus = node.querySelector("#lifecycle-status");
+  const lcAppliedAt = node.querySelector("#lifecycle-applied-at");
+  const lcNote = node.querySelector("#lifecycle-note");
+  const lcMsg = node.querySelector(".lifecycle-status-msg");
+  if (lcStatus) {
+    lcStatus.value = job.application_status || "";
+    if (job.applied_at) {
+      lcAppliedAt.value = job.applied_at.slice(0, 10);
+    }
+    const renderHistory = () => {
+      const list = node.querySelector(".status-history-list");
+      const counter = node.querySelector(".status-history-count");
+      const items = (job.status_history || []).slice().reverse();
+      counter.textContent = String(items.length);
+      list.innerHTML = items
+        .map(
+          (h) => `
+          <li>
+            <span class="h-when">${new Date(h.at).toLocaleString()}</span>
+            <span class="h-status">${(h.status || "").replace(/_/g, " ")}</span>
+            <span class="h-note">${h.note ? escapeHtml(h.note) : "<span class=\"muted\">(no note)</span>"}</span>
+          </li>`,
+        )
+        .join("");
+    };
+    renderHistory();
+
+    node.querySelector('[data-action="save-status"]').addEventListener("click", async (e) => {
+      const status = lcStatus.value;
+      if (!status) {
+        lcMsg.textContent = "Pick a status first.";
+        lcMsg.className = "lifecycle-status-msg err small";
+        return;
+      }
+      const payload = {
+        status,
+        applied_at: lcAppliedAt.value
+          ? new Date(lcAppliedAt.value + "T12:00:00Z").toISOString()
+          : null,
+        note: lcNote.value || null,
+      };
+      e.target.disabled = true;
+      lcMsg.textContent = "Saving…";
+      lcMsg.className = "lifecycle-status-msg muted small";
+      try {
+        const res = await api(`/api/jobs/${job.id}/status`, {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+        job.application_status = res.application_status;
+        job.applied_at = res.applied_at;
+        job.status_history = res.status_history;
+        lcMsg.textContent = "Saved.";
+        lcMsg.className = "lifecycle-status-msg ok small";
+        lcNote.value = "";
+        renderHistory();
+        // Refresh the list so the new pill shows up.
+        await loadList();
+      } catch (err) {
+        lcMsg.textContent = err.message;
+        lcMsg.className = "lifecycle-status-msg err small";
+      } finally {
+        e.target.disabled = false;
+      }
+    });
+  }
+
   // Feedback section
   const fb = job.human_feedback || {};
   const thumbBtns = node.querySelectorAll(".thumb");
@@ -236,6 +309,10 @@ function renderDetail(job) {
 }
 
 // -- wire events --
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"})[c]);
+}
 
 els.filterStatus.addEventListener("change", loadList);
 els.filterSource.addEventListener("change", loadList);

@@ -88,6 +88,17 @@ product-requirements/  PRD + spec + architecture + threat model
 .claude/skills/      project-specific skills
 ```
 
+## Application lifecycle (manual)
+
+`discovered_jobs.application_status` is a free-form-ish enum (`bookmarked`, `applied`, `screening`, `interview`, `offer`, `accepted`, `rejected`, `ghosted`, `withdrawn`, `not_applying`). **Every status change is user-initiated** — there is no automation that reads emails, calendar, Slack, or any external signal to infer state. This is deliberate per spec §25.6: manual entry gives ground truth for the eval harness and respects job-search nuance.
+
+When adding code that touches lifecycle:
+
+- Status set membership lives in `app/api/lifecycle.py` (`OPEN_STATUSES`, `RESPONDED_STATUSES`, `APPLIED_STATUSES`). A test in `tests/test_lifecycle.py` enforces invariants — read it before changing the buckets.
+- `status_history` is **append-only**. Never rewrite past entries.
+- `applied_at` is auto-set the first time the user picks an applied-shaped status, but always editable. Don't overwrite a user-set date.
+- The dashboard (`/ui/dashboard.html`) is read-only — it never POSTs a status change on the user's behalf.
+
 ## Conventions
 
 - **Python 3.12**, FastAPI, SQLAlchemy 2.x, Alembic, LangGraph, LangSmith, pytest.

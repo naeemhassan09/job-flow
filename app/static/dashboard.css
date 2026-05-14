@@ -1,0 +1,96 @@
+/* Dashboard — same Claude palette as inbox/usage. */
+
+.dual {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 22px;
+}
+@media (max-width: 960px) {
+  .dual { grid-template-columns: 1fr; }
+}
+
+/* Status horizontal bars */
+.status-bars {
+  padding: 18px 22px 20px;
+  display: grid;
+  gap: 12px;
+}
+.status-bars .empty-row { padding: 12px 0; }
+.status-bar {
+  display: grid;
+  grid-template-columns: 170px 1fr 50px;
+  align-items: center;
+  gap: 14px;
+  font-size: 13px;
+}
+.status-bar-label {
+  text-transform: lowercase;
+  letter-spacing: 0.04em;
+  color: var(--fg-soft);
+  font-weight: 500;
+}
+.status-bar-track {
+  height: 12px;
+  background: var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.status-bar-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 6px;
+  transition: width 0.3s ease;
+}
+.status-bar-fill.applied { background: var(--accent); }
+.status-bar-fill.screening { background: var(--accent); }
+.status-bar-fill.interview { background: var(--warn); }
+.status-bar-fill.offer { background: var(--ok); }
+.status-bar-fill.accepted { background: var(--ok); }
+.status-bar-fill.rejected { background: var(--err); }
+.status-bar-fill.ghosted { background: var(--err); }
+.status-bar-fill.withdrawn { background: var(--faint); }
+.status-bar-fill.not_applying { background: var(--faint); }
+.status-bar-fill.bookmarked { background: var(--muted); }
+.status-bar-fill.untriaged { background: var(--border-strong); }
+.status-bar-count {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+/* Weekly bar chart */
+.bar-chart {
+  padding: 18px 22px 20px;
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  min-height: 200px;
+}
+.bar-chart .empty-row { width: 100%; text-align: center; }
+.chart-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.chart-bar {
+  width: 100%;
+  background: var(--accent);
+  border-radius: 4px 4px 0 0;
+  min-height: 2px;
+  transition: height 0.3s ease;
+}
+.chart-label {
+  font-size: 10.5px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.chart-value {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--fg);
+  font-variant-numeric: tabular-nums;
+}

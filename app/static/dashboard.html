@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CareerOS AI — Dashboard</title>
+    <link rel="stylesheet" href="/ui/styles.css" />
+    <link rel="stylesheet" href="/ui/usage.css" />
+    <link rel="stylesheet" href="/ui/dashboard.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <h1 class="serif">CareerOS AI <span class="muted">— Dashboard</span></h1>
+      <nav class="topnav">
+        <a href="/ui/" class="navlink">Inbox</a>
+        <a href="/ui/dashboard.html" class="navlink active">Dashboard</a>
+        <a href="/ui/usage.html" class="navlink">Usage</a>
+        <a href="/ui/settings.html" class="navlink">Settings</a>
+      </nav>
+      <button id="refresh" class="ghost" title="Reload">↻</button>
+    </header>
+
+    <main class="usage-main">
+      <section class="cards">
+        <article class="card big">
+          <h3>Total tracked</h3>
+          <div class="value-big" id="total-jobs">—</div>
+          <div class="muted small">jobs captured or discovered</div>
+        </article>
+        <article class="card">
+          <h3>Open pipeline</h3>
+          <div class="value-big" id="open-pipeline">—</div>
+          <div class="muted small">applied · screening · interview · offer</div>
+        </article>
+        <article class="card">
+          <h3>Response rate</h3>
+          <div class="value-big" id="response-rate">—</div>
+          <div class="muted small" id="response-rate-detail">— of —</div>
+        </article>
+        <article class="card">
+          <h3>Avg fit (applied)</h3>
+          <div class="value-big" id="avg-fit">—</div>
+          <div class="muted small">across roles you've applied to</div>
+        </article>
+      </section>
+
+      <section class="panel">
+        <header class="panel-head">
+          <h2 class="serif">Pipeline by status</h2>
+        </header>
+        <div class="status-bars" id="status-bars">
+          <div class="muted small empty-row">Loading…</div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <header class="panel-head">
+          <h2 class="serif">Applications per week</h2>
+        </header>
+        <div class="bar-chart" id="weekly-chart">
+          <div class="muted small empty-row">Loading…</div>
+        </div>
+      </section>
+
+      <section class="dual">
+        <section class="panel">
+          <header class="panel-head">
+            <h2 class="serif">Top companies you've applied to</h2>
+          </header>
+          <table class="usage-table">
+            <thead>
+              <tr>
+                <th>Company</th>
+                <th class="num">Applications</th>
+              </tr>
+            </thead>
+            <tbody id="top-companies">
+              <tr><td colspan="2" class="empty-row muted small">Loading…</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="panel">
+          <header class="panel-head">
+            <h2 class="serif">Stale follow-ups (&gt; 14 days)</h2>
+          </header>
+          <table class="usage-table">
+            <thead>
+              <tr>
+                <th>Role</th>
+                <th>Company</th>
+                <th>Status</th>
+                <th class="num">Last update</th>
+              </tr>
+            </thead>
+            <tbody id="stale-followups">
+              <tr><td colspan="4" class="empty-row muted small">Loading…</td></tr>
+            </tbody>
+          </table>
+        </section>
+      </section>
+    </main>
+
+    <script src="/ui/dashboard.js"></script>
+  </body>
+</html>

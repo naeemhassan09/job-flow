@@ -11,6 +11,7 @@
       <h1 class="serif">CareerOS AI <span class="muted">— Inbox</span></h1>
       <nav class="topnav">
         <a href="/ui/" class="navlink active">Inbox</a>
+        <a href="/ui/dashboard.html" class="navlink">Dashboard</a>
         <a href="/ui/usage.html" class="navlink">Usage</a>
         <a href="/ui/settings.html" class="navlink">Settings</a>
       </nav>
@@ -65,6 +66,7 @@
         <div class="row-meta">
           <span class="source-pill"></span>
           <span class="status-pill"></span>
+          <span class="app-status-pill"></span>
         </div>
       </button>
     </template>
@@ -104,6 +106,48 @@
             <h4>Breakdown</h4>
             <div class="breakdown-bars"></div>
           </div>
+        </section>
+
+        <section class="lifecycle">
+          <h3>Application</h3>
+          <p class="muted small">
+            All entry is manual — set the status as you go. The dashboard
+            (<a href="/ui/dashboard.html">Dashboard</a>) aggregates everything you record here.
+          </p>
+          <div class="lifecycle-row">
+            <label class="field">
+              Status
+              <select id="lifecycle-status">
+                <option value="">— not set —</option>
+                <option value="bookmarked">Bookmarked</option>
+                <option value="applied">Applied</option>
+                <option value="screening">Screening / recruiter call</option>
+                <option value="interview">Interview</option>
+                <option value="offer">Offer</option>
+                <option value="accepted">Accepted</option>
+                <option value="rejected">Rejected</option>
+                <option value="ghosted">Ghosted</option>
+                <option value="withdrawn">I withdrew</option>
+                <option value="not_applying">Decided not to apply</option>
+              </select>
+            </label>
+            <label class="field">
+              Applied date
+              <input id="lifecycle-applied-at" type="date" />
+            </label>
+          </div>
+          <label class="field stack">
+            Note (appended to history)
+            <textarea id="lifecycle-note" rows="2" placeholder="Recruiter said timeline is end of month; expecting follow-up."></textarea>
+          </label>
+          <div class="lifecycle-actions">
+            <button class="primary" data-action="save-status">Update status</button>
+            <span class="lifecycle-status-msg muted small"></span>
+          </div>
+          <details class="status-history-block">
+            <summary>Status history (<span class="status-history-count">0</span>)</summary>
+            <ul class="status-history-list"></ul>
+          </details>
         </section>
 
         <section class="feedback">

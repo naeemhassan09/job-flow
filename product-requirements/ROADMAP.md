@@ -17,8 +17,9 @@
 | 2.8 | Claude-design restyle + always-on Docker container with hot-reload | ✅ done |
 | 2.9 | Token tracking middleware + Usage page (`/ui/usage.html`) | ✅ done |
 | 2.10 | Session auth + encrypted settings store + login page (spec §25.4) | ✅ done |
-| 2.11 | Settings UI page (API keys, model overrides, budgets, change password) | **next** |
-| 3 | Agentic research loop + MCP server + SSE streaming + Tavily | pending |
+| 2.11 | Settings UI page (API keys, model overrides, budgets, change password §25.5) | ✅ done |
+| 2.12 | Application lifecycle tracker + dashboard (manual entry §25.6) | ✅ done |
+| 3 | Agentic research loop + MCP server + SSE streaming + Tavily | **next** |
 | 4 | Eval harness (50 labeled pairs) + CI regression on PRs | pending |
 | 5 | CLI + Cloud Run deploy + LangSmith | pending |
 | 6 | Polish: README hook, 90-sec demo video, eval report, blog post | pending |

@@ -810,3 +810,56 @@ Companion to §25.4. Realises spec §9's observability page and §7's router as 
 **Lazy provider re-init**: `OpenAIProvider._ensure_client` / `AnthropicProvider._ensure_client` runs before every `generate()` and rebuilds the SDK client if the effective key changed. Safe because client construction is cheap.
 
 **Test-mode resilience**: settings_store reads inside hot paths swallow exceptions silently and fall back to spec defaults. This keeps unit tests passing without Postgres while still allowing the live app to honour UI overrides.
+
+### 25.6 Application lifecycle tracker — manual entry (2026-05-14)
+
+Realises the §17 week-5 "tracker" gap as user-facing functionality. All entry is **manual** — no automation infers or sets status. This is deliberate: at single-user scale, automation invents data; manual entry gives ground truth for the eval harness (week 4) and respects job-search nuance (e.g. "ghosted at week 3 then suddenly responded" is not modellable).
+
+**Schema** (migration `0005_application_lifecycle`):
+
+| Column | Meaning |
+|---|---|
+| `application_status TEXT NULL` | One of `ALLOWED_STATUSES`. NULL = not yet triaged. |
+| `applied_at TIMESTAMPTZ NULL` | When the user submitted the application. Auto-filled to `now()` the first time the user sets a status in `APPLIED_STATUSES`, but always editable. |
+| `status_updated_at TIMESTAMPTZ NULL` | Bookkeeping for the dashboard's "stale follow-ups" panel. |
+| `status_history JSONB NOT NULL DEFAULT '[]'` | Append-only list of `{at, status, note}` entries. Never truncated by the app. |
+
+**Status vocabulary** (`app.api.lifecycle.ALLOWED_STATUSES`):
+
+| Status | Bucket | Notes |
+|---|---|---|
+| `bookmarked` | pre-application | Saved for later, not applied yet. |
+| `applied` | open · applied | You submitted the application. |
+| `screening` | open · applied · responded | Recruiter call done, technical not yet. |
+| `interview` | open · applied · responded | Technical / onsite scheduled or done. |
+| `offer` | open · applied · responded | Offer in hand, not yet decided. |
+| `accepted` | applied · responded · closed | Offer accepted. |
+| `rejected` | applied · responded · closed | Either party said no after engagement. |
+| `ghosted` | applied · closed | No response after N weeks; user-declared. |
+| `withdrawn` | applied · closed | User withdrew. |
+| `not_applying` | closed | User triaged and decided no. |
+
+`OPEN_STATUSES = {applied, screening, interview, offer}` — drives the "open pipeline" card.
+`APPLIED_STATUSES` = everything except `bookmarked`, `withdrawn`, `not_applying` — drives "total applied" and "avg fit applied".
+`RESPONDED_STATUSES = {screening, interview, offer, accepted, rejected}` — drives response rate. Note `ghosted` is in `APPLIED_STATUSES` but **not** in `RESPONDED_STATUSES`, so `response_rate = responded/applied` is well-defined.
+
+Set membership is asserted by `tests/test_lifecycle.py` so a future maintainer adding a status has to think about which bucket it belongs to.
+
+**API**:
+
+```
+POST /api/jobs/{id}/status
+  { "status": "applied", "applied_at": "2026-05-14T...", "note": "..." }
+  → 200 { id, application_status, applied_at, status_updated_at, status_history }
+
+GET /api/stats/dashboard
+  → { total_jobs, by_status, open_pipeline, applied_total, responded_total,
+      response_rate, avg_fit_applied, applied_per_week, top_companies_applied,
+      stale_followups, allowed_statuses }
+```
+
+**UI**: `/ui/dashboard.html` (cards + status bars + weekly bar chart + top companies + stale follow-ups) and a new "Application" section on every inbox detail panel (status dropdown, applied-date picker, note textarea, status history details).
+
+**Stale follow-ups** = applications in `applied` or `screening` whose `status_updated_at < now - 14d`. Surfaces in the dashboard "Stale follow-ups" panel; links back to the inbox row.
+
+**Out of scope (explicit)**: no automatic state inference from email/calendar/Slack; no scraping of recruiter messages; no Slack/email reminders on stale follow-ups (UI-only nudge for V1).

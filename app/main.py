@@ -15,6 +15,7 @@ from app.api import (
     discovery,
     health,
     job_actions,
+    lifecycle,
     metrics,
     settings as settings_api,
     usage,
@@ -87,6 +88,7 @@ def create_app() -> FastAPI:
     app.include_router(job_actions.router)
     app.include_router(usage.router)
     app.include_router(settings_api.router)
+    app.include_router(lifecycle.router)
 
     app.mount("/ui", StaticFiles(directory=STATIC_DIR, html=True), name="ui")
 

@@ -80,6 +80,8 @@ API surface:
 | `GET  /api/jobs/{id}` | Full discovered-job row incl. raw payload |
 | `POST /api/jobs/{id}/score` | Score-only workflow (preprocess + matcher) against a single discovered_jobs row |
 | `POST /api/jobs/{id}/feedback` | Persist human feedback (thumb, score correction, decision override, notes) |
+| `POST /api/jobs/{id}/status` | Update application lifecycle status (manual; appends to status_history) |
+| `GET  /api/stats/dashboard` | Pipeline counts, response rate, avg fit applied, weekly applications, stale follow-ups |
 | `POST /api/captures` | Chrome-extension capture endpoint (bearer-token auth, not session) |
 | `GET  /api/usage/{monthly,by-model,by-node,recent}` | Token + cost telemetry |
 | `POST /api/auth/{init,login,logout,change-password}` | Session auth (first run uses `/init`, then `/login`) |
@@ -90,6 +92,7 @@ API surface:
 | `GET  /ui/` | Inbox UI (session-cookie protected) |
 | `GET  /ui/usage.html` | Usage dashboard (session-cookie protected) |
 | `GET  /ui/settings.html` | Settings page — API keys, model overrides, budgets, change password |
+| `GET  /ui/dashboard.html` | Application pipeline dashboard — counts by status, response rate, weekly applications, stale follow-ups |
 | `GET  /ui/login.html` | Sign-in / first-run setup |
 | `GET  /docs` | OpenAPI / Swagger UI |
 

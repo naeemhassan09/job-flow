@@ -46,6 +46,8 @@ class JobRow(BaseModel):
     triage_status: str
     fit_score: float | None
     decision: str | None
+    application_status: str | None
+    applied_at: str | None
     application_id: str | None
 
 
@@ -103,6 +105,8 @@ async def list_jobs(
             triage_status=r.triage_status,
             fit_score=float(r.fit_score) if r.fit_score is not None else None,
             decision=r.decision,
+            application_status=r.application_status,
+            applied_at=r.applied_at.isoformat() if r.applied_at else None,
             application_id=str(r.application_id) if r.application_id else None,
         )
         for r in rows
@@ -142,6 +146,12 @@ async def get_job(
         "score_breakdown": row.score_breakdown or {},
         "parsed_job": row.parsed_job or {},
         "human_feedback": row.human_feedback or {},
+        "application_status": row.application_status,
+        "applied_at": row.applied_at.isoformat() if row.applied_at else None,
+        "status_updated_at": (
+            row.status_updated_at.isoformat() if row.status_updated_at else None
+        ),
+        "status_history": row.status_history or [],
         "application_id": str(row.application_id) if row.application_id else None,
     }
 
