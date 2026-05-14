@@ -46,6 +46,15 @@ The user-facing surface for these settings is `/ui/settings.html` + `app/api/set
 3. Update the consumer (provider / scraper / router) to read via `settings_store.effective_secret(name, env_value)`.
 4. Wrap the settings_store call in `try/except` if it sits in a hot path — overrides degrade gracefully when the DB isn't reachable (e.g. in unit tests).
 
+## Licensing and liability stance
+
+This project is published under the **PolyForm Noncommercial License 1.0.0** ([LICENSE](LICENSE)). Two implications for any code change:
+
+1. **No GPL-licensed dependencies.** PolyForm Noncommercial isn't GPL-compatible. Stick to MIT / Apache 2.0 / BSD / PSF / Postgres-license deps. If you need to pull in something LGPL-or-stricter, surface it before adding.
+2. **Don't weaken the liability disclaimer.** [NOTICE](NOTICE) and the README "Disclaimer and limitation of liability" section together state: user accepts all risk for third-party API costs, third-party ToS compliance, hiring outcomes, and local PII storage. Anything that implies a warranty (e.g. "guaranteed to produce a hireable cover letter", "verified safe against all injection attacks") would undermine that and must be reworded.
+
+Commercial use requests go to naeemhassan09@gmail.com — don't try to handle them in the codebase by adding a paid tier or feature flag; that's an out-of-band conversation.
+
 ## Non-negotiables (from the spec)
 
 1. **No autonomous outbound messaging.** No email, no DMs, no auto-apply.

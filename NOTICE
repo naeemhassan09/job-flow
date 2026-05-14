@@ -1,0 +1,71 @@
+CareerOS AI
+Copyright (c) 2026 Naeem ul Hassan
+https://github.com/naeemhassan09/job-flow
+
+Licensed under the PolyForm Noncommercial License 1.0.0. See LICENSE for
+full terms.
+
+================================================================================
+
+COMMERCIAL USE
+
+If you want to use CareerOS AI for any commercial purpose — including but
+not limited to running it as a paid service, embedding it in a commercial
+product, using it inside a for-profit company for that company's benefit,
+or using it for paid recruitment / consulting work — you need a separate
+commercial license.
+
+Contact: Naeem ul Hassan <naeemhassan09@gmail.com>
+
+================================================================================
+
+WARRANTY & LIABILITY
+
+THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT.
+
+TO THE FULLEST EXTENT PERMITTED BY LAW, IN NO EVENT SHALL THE AUTHOR OR
+COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY,
+WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM, OUT
+OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+The user accepts all risk associated with using CareerOS AI, including
+but not limited to:
+
+  • Costs incurred against any third-party API keys (OpenAI, Anthropic,
+    Tavily, Adzuna, Reed, LangSmith, etc.) connected to the software.
+  • Compliance with the Terms of Service of every third-party service
+    used (LinkedIn, Indeed, Adzuna, Reed, OpenAI, Anthropic, Tavily,
+    LangSmith, etc.). The software ships with deliberate non-goals in
+    place (no scraping of LinkedIn/Indeed, no autonomous messaging, no
+    auto-apply) — modifying it to violate any third party's ToS is on
+    the user, not the author.
+  • Hiring, contractual, or employment outcomes from any application
+    submitted with the assistance of the software. CareerOS AI is a
+    drafting and triage tool. The user reviews and approves every
+    artifact before sending; the author makes no representation that
+    any output is suitable for any particular role or jurisdiction.
+  • Storage and protection of any personal data (your CV, your contact
+    details, scraped job descriptions) on the user's local machine
+    and database.
+
+================================================================================
+
+THIRD-PARTY NOTICES
+
+CareerOS AI depends on third-party software distributed under their own
+licenses. Notable dependencies include (but are not limited to):
+
+  • FastAPI, Starlette, Pydantic — MIT
+  • SQLAlchemy, Alembic — MIT
+  • LangGraph, LangChain — MIT
+  • OpenAI Python SDK — Apache 2.0
+  • Anthropic Python SDK — MIT
+  • mcp (Model Context Protocol Python SDK) — MIT
+  • httpx, structlog, bcrypt, itsdangerous, cryptography — various OSS
+  • PostgreSQL — PostgreSQL License
+
+Their license texts are reproduced inside the respective package
+distributions on PyPI and are not duplicated here.

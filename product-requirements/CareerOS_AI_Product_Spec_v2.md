@@ -1007,3 +1007,30 @@ Realises spec Section 8's MCP server. Five tools over stdio, structured-JSON ret
 - No streaming tools. MCP doesn't support partial responses well; `research_company` collects the loop synchronously. For live streaming UX use the HTTP SSE endpoints.
 - No prompt servers. The MCP `prompts` capability isn't exposed — the prompts live in `app/prompts/` versioned by the spec, not duplicated over the MCP boundary.
 - No tool-defined sampling. MCP supports clients sampling from a server's preferred model; we let Claude Desktop pick its own model and only return data.
+
+### 25.10 License and liability stance (2026-05-14)
+
+CareerOS AI is published under the **PolyForm Noncommercial License 1.0.0** ([LICENSE](../LICENSE), [NOTICE](../NOTICE)).
+
+**Why this license rather than a permissive OSS one (MIT / Apache 2.0):**
+
+- The project is the author's portfolio artifact and personal job-search tool. It is not a commodity component looking for adoption inside other people's products.
+- A pure "all rights reserved" repo gets ignored by reviewers because they can't run it. A permissive licence invites the same code to be repackaged into a paid SaaS without compensation. PolyForm Noncommercial is the middle path: anyone can run it locally for their own job hunt, research, or hobby use without asking; companies wanting to embed it pay for a separate license.
+- PolyForm Noncommercial is a real, lawyer-drafted license (the PolyForm Project, maintained by people including Heather Meeker). It has explicit "Personal Uses", "Noncommercial Organizations", and "No Liability" sections — three things a hand-rolled custom license usually gets wrong.
+
+**Liability stance:**
+
+The standard "AS IS, no warranty" plus a limitation of liability clause is reproduced verbatim in LICENSE and in expanded form in NOTICE. The README "Disclaimer and limitation of liability" section explicitly enumerates user-assumed risks:
+
+- Third-party API costs (OpenAI, Anthropic, Tavily, Adzuna, Reed, LangSmith).
+- Compliance with every third-party ToS the user connects to (LinkedIn, Indeed, etc.). The non-goals from Section 3.3 and Section 25.2 are deliberate guardrails; modifying the code to bypass them is on the user.
+- Hiring, contractual, or employment outcomes from any application submitted with the system's assistance.
+- Local PII storage on the user's database.
+
+**Implications for engineering**:
+
+- **No GPL-licensed dependencies.** PolyForm Noncommercial is not GPL-compatible. Stick to MIT / Apache 2.0 / BSD / PSF / Postgres-licensed deps. Adding an LGPL-or-stricter dep requires surfacing it as a license-compatibility decision before merging.
+- **Don't weaken the disclaimer.** Any feature copy or doc paragraph that implies a warranty ("guaranteed to produce a hireable cover letter", "verified safe against all injection attacks") undermines the No Liability clause and must be rephrased to keep an "as-is, best-effort" framing.
+- **Don't try to handle commercial-license requests in code.** Adding a paid-tier feature flag, telemetry call, or license-check is both a scope violation (single-user spec) and operationally ugly. Commercial requests go to naeemhassan09@gmail.com and are negotiated out-of-band.
+
+**Not legal advice**: the spec records engineering and product decisions. For any high-stakes commercial dispute or cross-border use a lawyer should be consulted.

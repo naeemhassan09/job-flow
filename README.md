@@ -86,7 +86,23 @@ CareerOS AI is configured for the Irish job market by default. The single switch
 
 ## License
 
-All rights reserved.
+CareerOS AI is licensed under the [PolyForm Noncommercial License 1.0.0](LICENSE).
+
+- **Free for personal and non-commercial use.** That covers personal job-search use, hobby projects, private experimentation, academic study, and use by charitable / educational / public-research / public-safety / public-health / government organisations.
+- **Commercial use requires a separate written license.** If you want to run CareerOS AI as a paid service, embed it in a commercial product, use it inside a for-profit company for that company's benefit, or use it for paid recruitment / consulting work, please contact [naeemhassan09@gmail.com](mailto:naeemhassan09@gmail.com) to arrange terms.
+
+See [LICENSE](LICENSE) and [NOTICE](NOTICE) for the full license text and the third-party notices.
+
+## Disclaimer and limitation of liability
+
+**The software is provided "AS IS", without warranty of any kind, express or implied.** To the fullest extent permitted by law, the author and copyright holder shall not be liable for any claim, damages, or other liability arising from, out of, or in connection with the software or its use. By using CareerOS AI you accept all risk associated with it, including but not limited to:
+
+- Costs charged against any third-party API key you connect (OpenAI, Anthropic, Tavily, Adzuna, Reed, LangSmith, etc.).
+- Compliance with the Terms of Service of every third-party service the software interacts with. CareerOS AI ships with deliberate non-goals (no scraping of LinkedIn / Indeed, no autonomous messaging, no auto-apply). Modifying it to bypass these is the user's responsibility.
+- Hiring, contractual, or employment outcomes from any application submitted with the software's assistance. Every artifact passes through a human-approval gate; the author makes no representation that any output is suitable for any particular role or jurisdiction.
+- Storage and protection of personal data on your local machine and database.
+
+This is not legal advice. For high-stakes commercial use or any cross-border legal question, consult a lawyer.
 
 ## Author
 

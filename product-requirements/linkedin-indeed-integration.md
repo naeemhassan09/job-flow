@@ -130,7 +130,6 @@ Re-capturing the same URL **updates** the existing row (refreshes `raw_jd`, `tit
 - Chrome Web Store publication (sideload only — `chrome://extensions` → Load unpacked)
 - Auto-fill of application forms (explicitly banned)
 - Reading recruiter messages, InMail, or any page outside `linkedin.com/jobs/*` and `indeed.com/viewjob*`
-- Per-row "Score now" button — for now use `POST /api/discover` to auto-score all pending captures
 
 ## Selector maintenance note
 
