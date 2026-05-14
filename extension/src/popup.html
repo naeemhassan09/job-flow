@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CareerOS AI</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header>
+      <h1>CareerOS AI</h1>
+      <p class="muted">Send the current LinkedIn / Indeed JD to your local backend.</p>
+    </header>
+
+    <main>
+      <button id="capture" class="primary">Send JD to CareerOS</button>
+      <div id="status" class="status" role="status" aria-live="polite"></div>
+
+      <section class="settings">
+        <label>
+          Backend URL
+          <input id="backendUrl" type="url" placeholder="http://127.0.0.1:8000" />
+        </label>
+        <label>
+          Bearer token (matches <code>EXTENSION_API_TOKEN</code> in .env)
+          <input id="token" type="password" autocomplete="off" />
+        </label>
+        <button id="save" class="secondary">Save settings</button>
+      </section>
+    </main>
+
+    <script src="popup.js"></script>
+  </body>
+</html>

@@ -1,0 +1,42 @@
+{
+  "manifest_version": 3,
+  "name": "CareerOS AI — JD Capture",
+  "version": "0.1.0",
+  "description": "Send the JD from the LinkedIn or Indeed tab you are viewing to your local CareerOS AI backend. Manual click only — no background scraping.",
+  "permissions": ["activeTab", "storage", "scripting"],
+  "host_permissions": [
+    "https://*.linkedin.com/jobs/*",
+    "https://*.indeed.com/viewjob*",
+    "https://*.indeed.com/jobs*",
+    "http://127.0.0.1:8000/*",
+    "http://localhost:8000/*"
+  ],
+  "background": {
+    "service_worker": "src/background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "Send JD to CareerOS",
+    "default_popup": "src/popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.linkedin.com/jobs/view/*",
+        "https://*.linkedin.com/jobs/collections/*",
+        "https://*.linkedin.com/jobs/search/*"
+      ],
+      "js": ["src/content/linkedin.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://*.indeed.com/viewjob*",
+        "https://*.indeed.com/jobs*"
+      ],
+      "js": ["src/content/indeed.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "options_page": "src/options.html"
+}
