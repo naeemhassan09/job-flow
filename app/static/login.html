@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CareerOS AI — Sign in</title>
+    <link rel="stylesheet" href="/ui/styles.css" />
+    <link rel="stylesheet" href="/ui/login.css" />
+  </head>
+  <body class="auth-body">
+    <main class="auth-shell">
+      <header class="auth-head">
+        <h1 class="serif">CareerOS AI</h1>
+        <p class="muted" id="auth-subtitle">Sign in to continue</p>
+      </header>
+
+      <form id="auth-form" class="auth-form" novalidate>
+        <label class="field">
+          Username
+          <input
+            id="username"
+            name="username"
+            type="text"
+            autocomplete="username"
+            autocapitalize="none"
+            spellcheck="false"
+            required
+          />
+        </label>
+        <label class="field">
+          Password
+          <input
+            id="password"
+            name="password"
+            type="password"
+            autocomplete="current-password"
+            required
+          />
+        </label>
+        <label class="field" id="confirm-field" style="display:none">
+          Confirm password
+          <input
+            id="confirm"
+            type="password"
+            autocomplete="new-password"
+          />
+        </label>
+        <button id="submit" class="primary" type="submit">Sign in</button>
+        <div id="status" class="status" role="status" aria-live="polite"></div>
+      </form>
+
+      <p class="muted small auth-footer" id="auth-footer"></p>
+    </main>
+    <script src="/ui/login.js"></script>
+  </body>
+</html>

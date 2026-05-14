@@ -34,6 +34,15 @@ Check:
 - The system prompt has the data-not-instructions clause.
 - The injection-attack regression set in `tests/test_injection_classifier.py` still passes.
 
+## Invariant 3 — Encrypted settings stay encrypted at rest, masked in responses
+
+Since spec §25.4, runtime-editable secrets live in `app_settings` (AES-GCM with `PII_ENCRYPTION_KEY`). When extending the settings API:
+
+- `GET /api/settings` (and any list/inspection endpoint) MUST mask values where `is_secret=true` (return `••••••••` or last-4 only). Never return the cleartext.
+- Editing a setting goes through `app.settings_store.put` — the cleartext lives in memory only during the request and is encrypted before persistence.
+- Never log the cleartext (the structured logger's `scrub_pii` processor catches common shapes — emails, phones, PPSN — but won't catch arbitrary API keys, so just don't log them).
+- See [auth-and-secrets](../auth-and-secrets/SKILL.md) for the full settings-store contract.
+
 ## When you touch security code
 
 Re-read [THREAT_MODEL.md](../../product-requirements/THREAT_MODEL.md). If your change adds a new input source, tool, or provider, update the threat model in the same PR.

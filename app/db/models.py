@@ -11,6 +11,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Integer,
+    LargeBinary as sa_LargeBinary,
     Numeric,
     String,
     Text,
@@ -109,6 +110,25 @@ class GeneratedArtifact(Base):
     eval_scores: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
     approved: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class AppSetting(Base):
+    """Encrypted key/value store for runtime settings the user can edit via the
+    UI: API keys, per-task model overrides, budget caps, the admin password
+    hash, etc. Values are AES-GCM encrypted with PII_ENCRYPTION_KEY; nonce is
+    stored alongside. The hash for the admin password is also stored here so
+    a fresh checkout doesn't ship a default password.
+    """
+
+    __tablename__ = "app_settings"
+
+    key: Mapped[str] = mapped_column(String(128), primary_key=True)
+    encrypted_value: Mapped[bytes] = mapped_column(sa_LargeBinary, nullable=False)
+    nonce: Mapped[bytes] = mapped_column(sa_LargeBinary, nullable=False)
+    is_secret: Mapped[bool] = mapped_column(Boolean, default=True)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
 
 
 class DiscoveredJob(Base):

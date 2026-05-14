@@ -769,3 +769,29 @@ Discovered jobs land in a new `discovered_jobs` table (deduped on `(source, exte
 ### 25.3 MongoDB allowed for principled cases (overrides §22 anti-pattern #5)
 
 The original anti-pattern said "no Mongo, Postgres only" full stop. User direction on 2026-05-14 narrowed: Mongo is allowed when *clearly* better for a specific use case (e.g. large raw HTML capture from the Week-3 research loop). Postgres remains the default; switching requires a stated reason in the PR/commit, not aesthetic preference. See `feedback_datastore_choice` memory.
+
+### 25.4 Single-user session auth + encrypted settings store (2026-05-14)
+
+The original spec assumed single-user with no auth (§3.2 implicit). User direction on 2026-05-14: because a Settings page now exposes editable API keys and model overrides, the UI and API must be gated behind a password.
+
+**What ships:**
+
+- New `app_settings` table: `(key TEXT PK, encrypted_value BYTEA, nonce BYTEA, is_secret BOOL, updated_at TIMESTAMPTZ)`. AES-GCM with `PII_ENCRYPTION_KEY` (auto-generated if missing).
+- New `app/auth.py`: bcrypt password hashing + `itsdangerous` signed-cookie sessions (7-day TTL, HttpOnly, SameSite=lax).
+- `app/api/auth.py`: `init`, `login`, `logout`, `me`, `status`, `change-password`.
+- `/ui/login.html`: dual-mode (first-run setup vs. standard login), auto-detected via `GET /api/auth/status`.
+- Middleware in `app/main.py` enforces session cookie on every `/api/*` and `/ui/*` route by default.
+
+**Whitelist (no cookie required):**
+
+| Path | Reason |
+|---|---|
+| `GET /healthz`, `GET /metrics` | Monitoring; unsafe to require auth |
+| `POST /api/captures` | Chrome extension authenticates with bearer token (`EXTENSION_API_TOKEN`) and CORS; cross-origin cookies from `chrome-extension://` are messy |
+| `GET /api/auth/*` | Bootstrap; you can't log in without it |
+| `/ui/login.html` and its assets (`login.css`, `login.js`, `styles.css`) | Same reason |
+| `/docs`, `/openapi.json`, `/redoc` | Dev-time convenience — could be gated in a future prod profile |
+
+**Settings precedence at runtime:** DB value (via `settings_store.get`) → env var → hardcoded default. Code that reads secrets or model names must go through `settings_store.effective_secret(name, env)` rather than `os.environ` or `get_settings()` directly, so UI overrides take effect without restarting the app.
+
+**Out of scope (explicit):** multi-user, SSO, RBAC, password reset via email, MFA. Single-user local app — none of these apply at V1 scale.

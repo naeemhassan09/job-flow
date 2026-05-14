@@ -19,6 +19,26 @@ CareerOS AI is currently **Ireland-first** (`default_country: ie`). Defaults acr
 
 **Country is a single knob**: `default_country` in `config/profile.yml`. Change it + the `locations[]` entries to target another market. Reed will return zero results outside UK/IE (disable it via `sources.reed.enabled: false`). Adzuna supports 15 countries. **Never hardcode country assumptions** in code — read from `UserProfile.default_country` or `SearchLocation.country`.
 
+## Auth (single-user, session cookie)
+
+The UI and most of the API are gated by a session cookie issued after login.
+
+- **Password**: bcrypt hash stored in `app_settings` (encrypted at rest).
+- **Session**: signed cookie via `itsdangerous`, 7-day TTL, HttpOnly, SameSite=lax.
+- **First run**: visit `/` → redirect to `/ui/login.html` in setup mode → POST `/api/auth/init` creates the admin.
+- **Whitelist (no cookie required)**: `/healthz`, `/metrics`, `/api/captures` (uses bearer token instead), `/api/auth/*`, `/ui/login.html` and the bundles it needs (`login.css`, `login.js`, `styles.css`), `/docs`, `/openapi.json`.
+- **Adding a new endpoint?** It is auth-gated by default (the middleware in `app/main.py` requires a session for everything under `/api/` and `/ui/` not in the whitelist). If you genuinely need it public, add the prefix to `auth.WHITELIST_PREFIXES` with a one-line comment justifying why.
+
+The Chrome extension authenticates with `EXTENSION_API_TOKEN` (bearer) and CORS, not with the session cookie. This is intentional — extension origins are noisy and cookies across `chrome-extension://` are messy.
+
+## Settings store
+
+Runtime-editable config (API keys, model overrides, budget caps, admin hash) lives in the `app_settings` table, AES-GCM encrypted with the 32-byte key from `PII_ENCRYPTION_KEY`. The key is auto-generated and persisted to `.env` on first use if missing.
+
+Read precedence at request time: **DB value if present → env var → hardcoded default**. Use `app.settings_store.get(name)` for DB-only reads, or `app.settings_store.effective_secret(name, env_value)` for the standard precedence chain.
+
+When writing code that uses an API key or model name, **never** read directly from `os.environ` or `get_settings()` — go through `settings_store` so the user's UI overrides take effect without restarting.
+
 ## Non-negotiables (from the spec)
 
 1. **No autonomous outbound messaging.** No email, no DMs, no auto-apply.

@@ -78,6 +78,15 @@ API surface:
 | `POST /api/discover` | Fan-out to Adzuna + Reed, dedupe, auto-score, promote `fit_score ≥ 70` to applications |
 | `GET  /api/jobs` | Browse the discovered-jobs inbox (filter by `status`, `source`) |
 | `GET  /api/jobs/{id}` | Full discovered-job row incl. raw payload |
+| `POST /api/jobs/{id}/score` | Score-only workflow (preprocess + matcher) against a single discovered_jobs row |
+| `POST /api/jobs/{id}/feedback` | Persist human feedback (thumb, score correction, decision override, notes) |
+| `POST /api/captures` | Chrome-extension capture endpoint (bearer-token auth, not session) |
+| `GET  /api/usage/{monthly,by-model,by-node,recent}` | Token + cost telemetry |
+| `POST /api/auth/{init,login,logout,change-password}` | Session auth (first run uses `/init`, then `/login`) |
+| `GET  /api/auth/{status,me}` | Auth introspection |
+| `GET  /ui/` | Inbox UI (session-cookie protected) |
+| `GET  /ui/usage.html` | Usage dashboard (session-cookie protected) |
+| `GET  /ui/login.html` | Sign-in / first-run setup |
 | `GET  /docs` | OpenAPI / Swagger UI |
 
 ## Get the discovery API keys (free, 5 min each)
@@ -98,6 +107,19 @@ If either is missing, that scraper is silently skipped — you can run the syste
 ## Repo layout
 
 See [CLAUDE.md](CLAUDE.md) for working notes, conventions, and contribution rules.
+
+## Auth
+
+Single-user local auth with a session cookie:
+
+1. First run, open http://127.0.0.1:8000/ — you'll be redirected to the login page in **first-run setup** mode. Pick a username (`admin` is fine) and a password ≥ 8 chars. The credentials are stored as a bcrypt hash inside the encrypted `app_settings` table.
+2. From then on, the same login form authenticates you. Cookie lasts 7 days.
+3. **Two endpoints bypass the session cookie on purpose:**
+   - `GET /healthz` and `GET /metrics` — open, for monitoring
+   - `POST /api/captures` — bearer-token auth (`EXTENSION_API_TOKEN`) so the Chrome extension works without browser cookies
+4. To change password: log in, then `POST /api/auth/change-password` (will be wired into the settings page next).
+
+All API keys (OpenAI, Anthropic, Tavily, Adzuna, Reed), per-task model overrides, and budget caps will be editable from the Settings page, stored AES-GCM encrypted at rest with `PII_ENCRYPTION_KEY` (auto-generated on first run if not set).
 
 ## Non-goals
 
