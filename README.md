@@ -23,7 +23,7 @@ Active development on the dev branch; main is the integration branch. The applic
 
 | Capability | Surface |
 |---|---|
-| Inbox of captured + discovered jobs with per-row scoring, human feedback, and **inline streaming cover-letter generation** | `/ui/` |
+| Inbox of captured + discovered jobs with per-row scoring, human feedback, **inline streaming cover-letter generation**, and **an agentic research loop that builds a grounded company brief** | `/ui/` |
 | Pipeline dashboard with response rate, weekly applications, stale follow-ups | `/ui/dashboard.html` |
 | Token + cost telemetry — month-to-date spend, by model, by node, recent calls | `/ui/usage.html` |
 | Settings panel for API keys, per-task model overrides, budget caps, password | `/ui/settings.html` |

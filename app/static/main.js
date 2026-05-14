@@ -212,6 +212,9 @@ function renderDetail(job) {
     }
   });
 
+  // Research section
+  wireResearch(node, job);
+
   // Cover-letter section
   wireCoverLetter(node, job);
 
@@ -571,6 +574,213 @@ function wireCoverLetter(node, job) {
   textarea.addEventListener("input", () => {
     btnRegen.disabled = !textarea.value;
     if (!approved) setState("draft", "Draft (unsaved)");
+  });
+}
+
+function wireResearch(node, job) {
+  const btnGo = node.querySelector('[data-action="research-go"]');
+  const stateP = node.querySelector(".research-state-pill");
+  const statusEl = node.querySelector(".research-status");
+  const costEl = node.querySelector(".research-cost");
+  const traceBlock = node.querySelector("#research-trace-block");
+  const traceList = node.querySelector("#research-trace");
+  const briefBlock = node.querySelector("#research-brief-block");
+
+  function fmtCost(eur) {
+    return new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency: "EUR",
+      minimumFractionDigits: eur < 1 ? 4 : 2,
+      maximumFractionDigits: 4,
+    }).format(Number(eur || 0));
+  }
+  function setState(s, label) { stateP.dataset.state = s || ""; stateP.textContent = label; }
+  function setStatus(t, k) { statusEl.textContent = t || ""; statusEl.className = `research-status muted small ${k || ""}`; }
+
+  const existingBrief = job.company_brief || {};
+  const existingTrace = job.research_trace || [];
+  const existingIters = job.research_iterations || 0;
+  const existingCost = job.research_total_cost_eur || 0;
+
+  function renderBrief(brief, sources) {
+    if (!brief || !brief.summary) {
+      briefBlock.style.display = "none";
+      return;
+    }
+    briefBlock.style.display = "";
+    briefBlock.querySelector(".brief-summary").textContent = brief.summary;
+    briefBlock.querySelector(".brief-what").textContent = brief.what_they_do || "—";
+    briefBlock.querySelector(".brief-tech").innerHTML =
+      (brief.tech_stack_signals || []).map((t) => `<li>${escapeHtml(t)}</li>`).join("") ||
+      '<li class="muted">No signals.</li>';
+    const srcArr = (brief.sources && brief.sources.length) ? brief.sources : (sources || []);
+    const linkify = (sourceIndex) => {
+      const src = srcArr[sourceIndex];
+      if (!src) return "";
+      return ` <a href="${escapeHtml(src.url)}" target="_blank" rel="noreferrer">${escapeHtml(src.title || src.url)}</a>`;
+    };
+    briefBlock.querySelector(".brief-news").innerHTML =
+      (brief.recent_news || []).map((n) => `<li>${escapeHtml(n.title)}${linkify(n.source_index)}</li>`).join("") ||
+      '<li class="muted">None.</li>';
+    briefBlock.querySelector(".brief-culture").innerHTML =
+      (brief.culture_signals || []).map((c) => `<li>${escapeHtml(c.text)}${linkify(c.source_index)}</li>`).join("") ||
+      '<li class="muted">None.</li>';
+    const flagsList = brief.red_flags || [];
+    const flagsSection = briefBlock.querySelector(".brief-red-flags");
+    if (flagsList.length) {
+      flagsSection.style.display = "";
+      briefBlock.querySelector(".brief-flags").innerHTML =
+        flagsList.map((f) => `<li>${escapeHtml(f.text)}${linkify(f.source_index)}</li>`).join("");
+    } else {
+      flagsSection.style.display = "none";
+    }
+    briefBlock.querySelector(".brief-sources").innerHTML = srcArr
+      .map((s) => `<li><a href="${escapeHtml(s.url)}" target="_blank" rel="noreferrer">${escapeHtml(s.title || s.url)}</a></li>`)
+      .join("");
+  }
+
+  function appendTraceItem(item) {
+    traceBlock.style.display = "";
+    const li = document.createElement("li");
+    const action = (item.action || item.tool || item.kind || "").toString();
+    const cls = ({
+      plan: "plan", stop: "plan", search: "search", web_search: "search",
+      fetch: "fetch", fetch_url: "fetch", synthesize: "synthesize", error: "error",
+    })[action] || "plan";
+    li.innerHTML = `
+      <span class="t-iter">${item.iteration ?? ""}</span>
+      <span class="t-action ${cls}">${escapeHtml(action)}</span>
+      <span class="t-body">${item.body || ""}</span>
+    `;
+    traceList.appendChild(li);
+    traceList.scrollIntoView({ block: "nearest" });
+  }
+
+  function renderExistingTrace(trace) {
+    traceList.innerHTML = "";
+    if (!trace.length) { traceBlock.style.display = "none"; return; }
+    traceBlock.style.display = "";
+    for (const t of trace) {
+      const body =
+        t.kind === "search" ? `query <code>${escapeHtml(t.query || "")}</code>` :
+        t.kind === "fetch"  ? `<a href="${escapeHtml(t.url || "")}" target="_blank" rel="noreferrer">${escapeHtml(t.title || t.url || "")}</a>` :
+        escapeHtml((t.summary || "").slice(0, 240));
+      appendTraceItem({ iteration: t.iteration, action: t.kind, body });
+    }
+  }
+
+  // Hydrate from existing data on row load
+  if (existingIters > 0 || (existingBrief && existingBrief.summary)) {
+    setState("ready", `Brief from ${new Date(job.research_at).toLocaleString()}`);
+    costEl.textContent = `${existingIters} iter${existingIters === 1 ? "" : "s"} · ${fmtCost(existingCost)} total`;
+    renderExistingTrace(existingTrace);
+    renderBrief(existingBrief);
+    btnGo.textContent = "Re-research";
+  }
+
+  btnGo.addEventListener("click", async () => {
+    btnGo.disabled = true;
+    setState("thinking", "Planning…");
+    setStatus("Connecting to agent…");
+    traceList.innerHTML = "";
+    briefBlock.style.display = "none";
+    traceBlock.style.display = "";
+
+    let response;
+    try {
+      response = await fetch(`/api/jobs/${job.id}/research`, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { Accept: "text/event-stream" },
+      });
+    } catch (e) {
+      setState("error", "Failed");
+      setStatus(`Network error: ${e.message}`, "err");
+      btnGo.disabled = false;
+      return;
+    }
+    if (!response.ok) {
+      let detail = `HTTP ${response.status}`;
+      try { const b = await response.json(); if (b.detail) detail = b.detail; } catch {}
+      setState("error", "Failed");
+      setStatus(detail, "err");
+      btnGo.disabled = false;
+      return;
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let runningCost = 0;
+    try {
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        let idx;
+        while ((idx = buffer.indexOf("\n\n")) !== -1) {
+          const raw = buffer.slice(0, idx);
+          buffer = buffer.slice(idx + 2);
+          let eventName = "message";
+          let dataStr = "";
+          for (const line of raw.split("\n")) {
+            if (line.startsWith("event:")) eventName = line.slice(6).trim();
+            else if (line.startsWith("data:")) dataStr += line.slice(5).trim();
+          }
+          if (!dataStr) continue;
+          let payload = null;
+          try { payload = JSON.parse(dataStr); } catch { continue; }
+
+          if (eventName === "meta") {
+            setStatus(`Researching ${payload.company}…`);
+          } else if (eventName === "plan") {
+            runningCost += Number(payload.cost_eur || 0);
+            costEl.textContent = `${payload.iteration} iter · ${fmtCost(runningCost)} so far`;
+            setState("thinking", `Iteration ${payload.iteration}: ${payload.action}`);
+            const body = `<em>${escapeHtml(payload.reason || "(no reason given)")}</em>` +
+              (payload.action === "search" && payload.query ? ` — query <code>${escapeHtml(payload.query)}</code>` : "") +
+              (payload.action === "fetch" && payload.url ? ` — <a href="${escapeHtml(payload.url)}" target="_blank" rel="noreferrer">${escapeHtml(payload.url)}</a>` : "");
+            appendTraceItem({ iteration: payload.iteration, action: payload.action, body });
+          } else if (eventName === "tool_result") {
+            setState("acting", `Acting (${payload.tool})…`);
+            let body;
+            if (payload.tool === "web_search") {
+              const top = (payload.hits || []).slice(0, 3).map((h) =>
+                `<div><a href="${escapeHtml(h.url)}" target="_blank" rel="noreferrer">${escapeHtml(h.title || h.url)}</a></div>`,
+              ).join("");
+              body = (payload.error ? `<span class="muted">${escapeHtml(payload.error)}</span>` : top) ||
+                '<span class="muted">No hits.</span>';
+            } else {
+              const link = `<a href="${escapeHtml(payload.url)}" target="_blank" rel="noreferrer">${escapeHtml(payload.title || payload.url)}</a>`;
+              body = payload.error ? `${link} — <span class="muted">${escapeHtml(payload.error)}</span>` : link;
+            }
+            appendTraceItem({ iteration: payload.iteration, action: payload.tool, body });
+          } else if (eventName === "synthesize") {
+            setState("thinking", "Synthesising brief…");
+            appendTraceItem({
+              iteration: payload.iterations + 1,
+              action: "synthesize",
+              body: `Combining ${payload.iterations} observations into a structured brief.`,
+            });
+          } else if (eventName === "final") {
+            runningCost = payload.total_cost_eur ?? (runningCost + (payload.cost_eur || 0));
+            setState("ready", "Brief ready");
+            setStatus(`Done. ${payload.iterations} iterations · ${fmtCost(payload.cost_eur)} this run.`, "ok");
+            costEl.textContent = `${payload.iterations} iter · ${fmtCost(runningCost)} total`;
+            renderBrief(payload.brief);
+            btnGo.textContent = "Re-research";
+          } else if (eventName === "error") {
+            setState("error", "Failed");
+            setStatus(payload.detail || "Unknown error", "err");
+          }
+        }
+      }
+    } catch (e) {
+      setState("error", "Failed");
+      setStatus(`Stream error: ${e.message}`, "err");
+    } finally {
+      btnGo.disabled = false;
+    }
   });
 }
 

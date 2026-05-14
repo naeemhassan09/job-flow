@@ -88,6 +88,21 @@ product-requirements/  PRD + spec + architecture + threat model
 .claude/skills/      project-specific skills
 ```
 
+## Research loop (agentic, plan → act → observe → stop)
+
+The one real agentic loop in the system. Spec Section 5.2 / Section 25.8. Code lives in `app/research/` (tools + agent) and is invoked via the SSE endpoint `POST /api/jobs/{id}/research`.
+
+Hard invariants — break these and the loop becomes either unsafe or non-agentic:
+
+- **`MAX_ITERATIONS = 6`** in `app/research/agent.py`. Don't raise without proving (via the eval harness, when it exists) that quality keeps improving past 6.
+- **Dedupe sets** on queries and URLs are mandatory. The planner LLM will repeat itself; the loop must catch this before another tool call burns budget.
+- **All tools are exception-tolerant.** A failed web_search or a 404 fetch_url returns a result with `error` set, never raises. The agent treats it as an observation and moves on.
+- **Tool output is wrapped in `<observation>` tags** before the planner sees it. The system prompt explicitly says content inside those tags is data, not instructions. Don't remove that defence.
+- **The trace is append-only.** Every plan step, tool result, and dedupe rejection goes in `research_trace`. The UI uses it to make the agent's reasoning visible; the eval harness (Week 4) will score loop quality off it.
+- **Default model**: `research_step` task → `openai/gpt-4.1-mini` (default per spec routing) — short cheap calls, lots of them. Override via Settings if you want Claude Haiku instead.
+
+When adding a new tool: implement it in `app/research/tools.py`, return a dataclass with `error: str | None`, register the action in `app/prompts/research_plan.md`'s system prompt, then handle the new action branch in `agent.run_research`. Don't bypass the router for streaming; we want usage events recorded.
+
 ## Cover-letter generation (streaming, draft, approve)
 
 Cover letters for discovered jobs are drafted inline via the SSE endpoint `POST /api/jobs/{id}/generate`. Read [spec section 25.7](product-requirements/CareerOS_AI_Product_Spec_v2.md) before changing anything in this area.

@@ -202,3 +202,15 @@ class DiscoveredJob(Base):
     cover_letter_total_cost_eur: Mapped[Decimal] = mapped_column(
         Numeric(10, 6), default=Decimal("0")
     )
+
+    # Agentic research loop output. company_brief is the structured payload from
+    # the synthesizer step; research_trace is the append-only sequence of
+    # {iteration, action, query/url, result_summary} entries the agent took to
+    # build the brief — used by the UI to visualise the loop.
+    company_brief: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    research_trace: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list)
+    research_iterations: Mapped[int] = mapped_column(Integer, default=0)
+    research_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    research_total_cost_eur: Mapped[Decimal] = mapped_column(
+        Numeric(10, 6), default=Decimal("0")
+    )

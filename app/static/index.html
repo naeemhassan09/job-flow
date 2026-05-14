@@ -152,6 +152,60 @@
           </details>
         </section>
 
+        <section class="research">
+          <header class="research-head">
+            <h3>About this company</h3>
+            <div class="research-meta muted small">
+              <span class="research-state-pill" data-state="">No brief yet</span>
+              <span class="research-cost"></span>
+            </div>
+          </header>
+          <p class="muted small">
+            Runs an agentic loop (plan → web search / fetch → synthesize) to build
+            a grounded company brief from public sources. Trace shows the agent's
+            actual reasoning steps.
+          </p>
+          <div id="research-actions" class="research-actions">
+            <button class="primary" data-action="research-go">Research company</button>
+            <span class="research-status muted small"></span>
+          </div>
+          <div id="research-trace-block" class="research-trace-block" style="display:none">
+            <h4>Agent trace</h4>
+            <ul id="research-trace" class="research-trace-list"></ul>
+          </div>
+          <div id="research-brief-block" class="research-brief-block" style="display:none">
+            <article class="brief">
+              <p class="brief-summary"></p>
+              <div class="brief-grid">
+                <section class="brief-col">
+                  <h4>What they do</h4>
+                  <p class="brief-what"></p>
+                </section>
+                <section class="brief-col">
+                  <h4>Tech stack signals</h4>
+                  <ul class="brief-tech"></ul>
+                </section>
+              </div>
+              <section class="brief-section">
+                <h4>Recent news</h4>
+                <ul class="brief-news"></ul>
+              </section>
+              <section class="brief-section">
+                <h4>Culture signals</h4>
+                <ul class="brief-culture"></ul>
+              </section>
+              <section class="brief-section brief-red-flags" style="display:none">
+                <h4>Red flags</h4>
+                <ul class="brief-flags"></ul>
+              </section>
+              <section class="brief-section">
+                <h4>Sources</h4>
+                <ol class="brief-sources"></ol>
+              </section>
+            </article>
+          </div>
+        </section>
+
         <section class="cover-letter">
           <header class="cover-letter-head">
             <h3>Cover letter</h3>

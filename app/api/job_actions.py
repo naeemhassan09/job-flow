@@ -151,6 +151,106 @@ async def _load_row(session: AsyncSession, job_id: str) -> DiscoveredJob:
 
 
 # ---------------------------------------------------------------------------
+# Research — agentic loop streamed to the UI as SSE
+# ---------------------------------------------------------------------------
+
+
+@router.post("/{job_id}/research")
+async def research_company_endpoint(
+    job_id: str,
+    _user: auth.SessionUser = Depends(auth.require_session),
+) -> EventSourceResponse:
+    """Run the agentic research loop against a discovered job and stream the
+    agent's thinking + tool results live. On the final event, the structured
+    company_brief and full research_trace are persisted on the row.
+
+    Event vocabulary:
+      event: meta          {company, role}
+      event: plan          {iteration, action, query?, url?, reason, cost_eur}
+      event: tool_result   {iteration, tool, ... hits|excerpt}
+      event: synthesize    {iterations}
+      event: final         {brief, iterations, cost_eur, total_cost_eur}
+      event: error         {detail}
+    """
+    async with get_sessionmaker()() as session:
+        row = await _load_row(session, job_id)
+        if not row.company or row.company == "(unknown company)":
+            raise HTTPException(status_code=422, detail="job has no company name to research")
+        company = row.company
+        role = row.title
+        snapshot_id = row.id
+
+    async def event_stream():
+        from app.research.agent import run_research
+
+        ctx = get_context()
+        yield {"event": "meta", "data": json.dumps({"company": company, "role": role})}
+
+        trace: list[dict] = []
+        brief: dict | None = None
+        cost_eur = 0.0
+        iterations = 0
+        try:
+            async for ev in run_research(ctx=ctx, company=company, role=role):
+                if ev.kind == "plan":
+                    cost_eur += float(ev.data.get("cost_eur") or 0)
+                    yield {"event": "plan", "data": json.dumps(ev.data)}
+                elif ev.kind == "tool_result":
+                    yield {"event": "tool_result", "data": json.dumps(ev.data)}
+                elif ev.kind == "synthesize":
+                    yield {"event": "synthesize", "data": json.dumps(ev.data)}
+                elif ev.kind == "final":
+                    brief = ev.data["brief"]
+                    trace = ev.data["trace"]
+                    iterations = ev.data.get("iterations", 0)
+                    cost_eur += float(ev.data.get("synth_cost_eur") or 0)
+                elif ev.kind == "error":
+                    yield {"event": "error", "data": json.dumps(ev.data)}
+                await asyncio.sleep(0)
+        except Exception as e:  # noqa: BLE001
+            yield {"event": "error", "data": json.dumps({"detail": str(e)})}
+            return
+
+        if brief is None:
+            yield {
+                "event": "error",
+                "data": json.dumps({"detail": "loop ended without a synthesized brief"}),
+            }
+            return
+
+        # Persist
+        now = datetime.now(tz=UTC)
+        async with get_sessionmaker()() as session:
+            row = await session.get(DiscoveredJob, snapshot_id)
+            if row is not None:
+                row.company_brief = brief
+                row.research_trace = trace
+                row.research_iterations = iterations
+                row.research_at = now
+                row.research_total_cost_eur = Decimal(str(float(row.research_total_cost_eur or 0) + cost_eur))
+                await session.commit()
+                total_cost = float(row.research_total_cost_eur or 0)
+            else:
+                total_cost = cost_eur
+
+        yield {
+            "event": "final",
+            "data": json.dumps(
+                {
+                    "brief": brief,
+                    "trace": trace,
+                    "iterations": iterations,
+                    "cost_eur": cost_eur,
+                    "total_cost_eur": total_cost,
+                    "research_at": now.isoformat(),
+                }
+            ),
+        }
+
+    return EventSourceResponse(event_stream(), media_type="text/event-stream")
+
+
+# ---------------------------------------------------------------------------
 # Cover letter — SSE generation + save + approve toggle
 # ---------------------------------------------------------------------------
 

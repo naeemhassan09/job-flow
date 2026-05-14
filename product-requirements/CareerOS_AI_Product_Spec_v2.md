@@ -912,3 +912,66 @@ POST /api/jobs/{id}/cover-letter/unapprove
 **Cost discipline**: every regeneration writes a row to `llm_usage_events` (via the existing `record_usage` middleware) and bumps `cover_letter_total_cost_eur`. The Usage page surfaces both. Generations on `bookmarked`/`not_applying` rows require `force=true` so the user can't accidentally burn budget on jobs they've already triaged out.
 
 **Out of scope for V1**: no template versioning per-role (one prompt for all letters); no language switching; no PDF export from the UI (copy/paste is fine); no calendar integration for follow-up reminders.
+
+### 25.8 Agentic research loop with web_search + fetch_url (2026-05-14)
+
+Realises spec Section 5.1's "research (agentic loop)" node as a stand-alone, UI-visible feature. **One real plan→act→observe→stop loop with tool use** — the differentiator between "stateful pipeline" and "agentic platform" called out in spec Section 5.2.
+
+**Schema** (migration `0007_research`): five new columns on `discovered_jobs`:
+
+| Column | Meaning |
+|---|---|
+| `company_brief JSONB NOT NULL DEFAULT '{}'` | Structured output from the synthesizer: summary, what_they_do, tech_stack_signals, recent_news[], culture_signals[], red_flags[], sources[]. Every claim cites a `source_index` into the sources array. |
+| `research_trace JSONB NOT NULL DEFAULT '[]'` | Append-only record of every step the agent took. Used by the UI to visualise the loop, and as evidence for the eval harness. |
+| `research_iterations INT NOT NULL DEFAULT 0` | Number of plan steps the agent ran on the last invocation. Hard-capped at `MAX_ITERATIONS = 6`. |
+| `research_at TIMESTAMPTZ NULL` | Timestamp of the last successful synthesis. |
+| `research_total_cost_eur NUMERIC(10,6) NOT NULL DEFAULT 0` | Append-only sum across all research runs for this row. |
+
+**Tools** (`app/research/tools.py`):
+
+- `web_search(query)` — Tavily API. Returns `SearchResult(query, hits, error)`. Error-tolerant: a missing key or HTTP failure returns `error` set, hits empty; the agent treats it as an observation rather than a crash.
+- `fetch_url(url)` — `httpx` with strict limits: HTTPS-or-HTTP only, 12 s timeout, 350 KB max response, HTML-or-text content-type, body trimmed to 12 K chars after `<script>`/`<style>` stripping. Returns `FetchResult` with `error` set on any rejection so the agent moves on cleanly.
+
+**Agent loop** (`app/research/agent.py::run_research`):
+
+```
+for iteration in 1..MAX_ITERATIONS:
+    plan = LLM(prompts/research_plan.md, company, role, notes_so_far)
+    yield ResearchEvent(kind="plan", data={...})
+    if plan.action == "stop": break
+    if plan.action == "search":
+        if query in seen_queries: yield error event; continue
+        result = await web_search(query)
+        notes.append(observation)
+        yield ResearchEvent(kind="tool_result", ...)
+    elif plan.action == "fetch":
+        # same dedupe pattern on URLs
+brief = LLM(prompts/research_synthesize.md, observations)
+yield ResearchEvent(kind="final", data={brief, trace, ...})
+```
+
+Honest agentic behaviours:
+
+- **Dedupe sets** on queries (lowercased) and URLs prevent loops.
+- **Notes window**: the most recent `MAX_TOTAL_NOTES = 14` observations are fed back to the planner, oldest dropped.
+- **`<observation>` delimiters** wrap untrusted tool output before the LLM sees it, with an explicit data-not-instructions clause in the system prompt.
+- **Trace is the audit trail** — even error / dedupe-rejected steps are logged with their reason so a future eval can score loop quality.
+
+**SSE endpoint** `POST /api/jobs/{id}/research`:
+
+```
+event: meta         {company, role}
+event: plan         {iteration, action, query?, url?, reason, cost_eur}
+event: tool_result  {iteration, tool, hits|excerpt, error?}
+event: synthesize   {iterations}
+event: final        {brief, trace, iterations, cost_eur, total_cost_eur, research_at}
+event: error        {detail}
+```
+
+Preconditions: row must have a non-`(unknown)` company name (422 otherwise). No apply-band check — research is cheap (~€0.003) and often more useful on borderline-fit roles to decide whether to apply at all.
+
+**UI**: inbox detail panel "About this company" section. State pill colour-bands `thinking` (accent) / `acting` (warn) / `ready` (ok) / `error` (err). Agent trace renders as a vertical list with iteration number, action pill, and one-line rationale + linked tool result. Brief renders below the trace with summary, what-they-do, tech-stack chips, recent news, culture signals, red flags (only shown if non-empty, header in red), and a numbered sources list every claim links into.
+
+**Cost discipline**: each plan step + the synthesizer write `llm_usage_events` rows via the standard recording middleware. A full research run sits around €0.002–€0.005 on `gpt-4.1-mini` — comparable to one cover-letter generation.
+
+**Out of scope for V1**: no parallel tool dispatch (one tool per iteration keeps the trace human-readable); no robots.txt parsing (we don't crawl, we fetch single URLs the agent explicitly chose); no caching of search results across jobs (Tavily free tier is 1k/month — comfortable headroom); no per-source quality weighting in the synthesizer (it grounds on whatever the agent picked).

@@ -189,6 +189,11 @@ async def get_job(
         "cover_letter_approved": bool(row.cover_letter_approved),
         "cover_letter_generations": int(row.cover_letter_generations or 0),
         "cover_letter_total_cost_eur": float(row.cover_letter_total_cost_eur or 0),
+        "company_brief": row.company_brief or {},
+        "research_trace": list(row.research_trace or []),
+        "research_iterations": int(row.research_iterations or 0),
+        "research_at": row.research_at.isoformat() if row.research_at else None,
+        "research_total_cost_eur": float(row.research_total_cost_eur or 0),
     }
 
 
