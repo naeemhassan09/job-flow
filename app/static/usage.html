@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CareerOS AI — Usage</title>
+    <link rel="stylesheet" href="/ui/styles.css" />
+    <link rel="stylesheet" href="/ui/usage.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <h1 class="serif">CareerOS AI <span class="muted">— Usage</span></h1>
+      <nav class="topnav">
+        <a href="/ui/" class="navlink">Inbox</a>
+        <a href="/ui/usage.html" class="navlink active">Usage</a>
+      </nav>
+    </header>
+
+    <main class="usage-main">
+      <section class="cards">
+        <article class="card big">
+          <h3>Month-to-date spend</h3>
+          <div class="value-big" id="mtd-spend">—</div>
+          <div class="meter"><span class="meter-fill" id="mtd-meter"></span></div>
+          <div class="muted small" id="mtd-cap">of —</div>
+        </article>
+
+        <article class="card">
+          <h3>LLM calls</h3>
+          <div class="value-big" id="mtd-calls">—</div>
+          <div class="muted small">since <span id="month-start"></span></div>
+        </article>
+
+        <article class="card">
+          <h3>Tokens</h3>
+          <div class="value-big" id="mtd-tokens">—</div>
+          <div class="muted small">
+            cached <span id="mtd-cached">0</span>
+            <span class="dot">·</span>
+            <span id="mtd-cache-rate">0%</span> hit rate
+          </div>
+        </article>
+      </section>
+
+      <section class="panel">
+        <header class="panel-head">
+          <h2 class="serif">By model</h2>
+        </header>
+        <table class="usage-table">
+          <thead>
+            <tr>
+              <th>Provider</th>
+              <th>Model</th>
+              <th class="num">Calls</th>
+              <th class="num">Tokens</th>
+              <th class="num">Spend (EUR)</th>
+            </tr>
+          </thead>
+          <tbody id="by-model-rows">
+            <tr><td colspan="5" class="muted small empty-row">Loading…</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="panel">
+        <header class="panel-head">
+          <h2 class="serif">By node</h2>
+        </header>
+        <table class="usage-table">
+          <thead>
+            <tr>
+              <th>Node</th>
+              <th class="num">Calls</th>
+              <th class="num">Tokens</th>
+              <th class="num">Spend (EUR)</th>
+              <th class="num">Avg latency (ms)</th>
+            </tr>
+          </thead>
+          <tbody id="by-node-rows">
+            <tr><td colspan="5" class="muted small empty-row">Loading…</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="panel">
+        <header class="panel-head">
+          <h2 class="serif">Recent calls</h2>
+          <button id="refresh" class="ghost" title="Reload">↻</button>
+        </header>
+        <table class="usage-table">
+          <thead>
+            <tr>
+              <th>When</th>
+              <th>Node</th>
+              <th>Model</th>
+              <th class="num">Tokens</th>
+              <th class="num">Cost</th>
+              <th class="num">Latency</th>
+            </tr>
+          </thead>
+          <tbody id="recent-rows">
+            <tr><td colspan="6" class="muted small empty-row">Loading…</td></tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+
+    <script src="/ui/usage.js"></script>
+  </body>
+</html>

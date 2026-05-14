@@ -9,10 +9,11 @@ from app.llm import prompts
 from app.llm.json_utils import parse_json
 from app.llm.types import LLMRequest, Message
 
-from ._common import context_from
+from ._common import context_from, stamp_call_context
 
 
 async def generator(state: JobSearchState, config: RunnableConfig) -> JobSearchState:
+    stamp_call_context(state, "generator")
     ctx = context_from(config)
 
     if state.get("decision") != "apply":

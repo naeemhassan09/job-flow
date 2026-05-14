@@ -9,10 +9,11 @@ from app.llm.types import LLMRequest, Message
 from app.security.injection import scan as injection_scan
 from app.security.pii import redact
 
-from ._common import context_from
+from ._common import context_from, stamp_call_context
 
 
 async def preprocess(state: JobSearchState, config: RunnableConfig) -> JobSearchState:
+    stamp_call_context(state, "preprocess")
     ctx = context_from(config)
     raw_jd = state.get("raw_jd", "")
 

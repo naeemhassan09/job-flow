@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.api import applications, captures, discovery, health, job_actions, metrics
+from app.api import applications, captures, discovery, health, job_actions, metrics, usage
 from app.config import get_settings
 from app.observability import log
 
@@ -36,6 +36,7 @@ def create_app() -> FastAPI:
     app.include_router(discovery.router)
     app.include_router(captures.router)
     app.include_router(job_actions.router)
+    app.include_router(usage.router)
 
     # Inbox UI — single-page HTML served from /ui.
     app.mount("/ui", StaticFiles(directory=STATIC_DIR, html=True), name="ui")

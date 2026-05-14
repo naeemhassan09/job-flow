@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 from app.llm.types import LLMProvider, LLMRequest, LLMResponse
+from app.llm.usage import CallContext, get_call_context, record_usage
 
 Task = Literal[
     "jd_parsing",
@@ -48,9 +49,32 @@ class Router:
         route = ROUTES[task]
         if request is None:
             request = LLMRequest(model=route.default_model, **kwargs)  # type: ignore[arg-type]
+        ctx = _ctx_for_task(task)
         try:
             provider = self._providers[route.default_provider]
-            return await provider.generate(request.model_copy(update={"model": route.default_model}))
+            response = await provider.generate(
+                request.model_copy(update={"model": route.default_model})
+            )
         except Exception:
             provider = self._providers[route.fallback_provider]
-            return await provider.generate(request.model_copy(update={"model": route.fallback_model}))
+            response = await provider.generate(
+                request.model_copy(update={"model": route.fallback_model})
+            )
+        await record_usage(response, ctx=ctx)
+        return response
+
+
+def _ctx_for_task(task: Task) -> CallContext | None:
+    """Refine the current CallContext with the routed task name. The node sets
+    workflow_id + node_name on entry; this stamps the task so the usage row
+    distinguishes 'matcher' from 'evaluator' even when both share a node."""
+    base = get_call_context()
+    if base is None:
+        return None
+    return CallContext(
+        workflow_id=base.workflow_id,
+        node_name=base.node_name,
+        application_id=base.application_id,
+        step_name=base.step_name,
+        task=task,
+    )

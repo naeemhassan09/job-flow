@@ -112,6 +112,24 @@ body {
 }
 .topbar h1 .muted { font-weight: 400; }
 .topbar .filters { display: flex; align-items: center; gap: 12px; margin-left: auto; }
+
+.topnav {
+  margin-left: 16px;
+  display: flex;
+  gap: 4px;
+}
+.navlink {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 6px;
+  text-decoration: none;
+  color: var(--fg-soft);
+  font-size: 13px;
+  font-weight: 500;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.navlink:hover { background: var(--row-hover); color: var(--fg); }
+.navlink.active { background: var(--accent-soft); color: var(--accent); }
 .topbar label {
   display: flex;
   align-items: center;

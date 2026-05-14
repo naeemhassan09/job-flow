@@ -8,10 +8,11 @@ from app.llm.json_utils import parse_json
 from app.llm.types import LLMRequest, Message
 from app.security.pii import redact
 
-from ._common import context_from
+from ._common import context_from, stamp_call_context
 
 
 async def profile(state: JobSearchState, config: RunnableConfig) -> JobSearchState:
+    stamp_call_context(state, "profile")
     ctx = context_from(config)
 
     raw_cv = state.get("raw_cv_text") or ctx.profile.load_cv_text()
