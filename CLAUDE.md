@@ -88,6 +88,19 @@ product-requirements/  PRD + spec + architecture + threat model
 .claude/skills/      project-specific skills
 ```
 
+## Cover-letter generation (streaming, draft, approve)
+
+Cover letters for discovered jobs are drafted inline via the SSE endpoint `POST /api/jobs/{id}/generate`. Read [spec section 25.7](product-requirements/CareerOS_AI_Product_Spec_v2.md) before changing anything in this area.
+
+Key invariants:
+
+- **Provider streaming contract**: every provider exposes `stream_text(request)` that yields `StreamDelta(text=...)` events and terminates with a single `LLMResponse` carrying real usage stats (token counts come from the provider's own stream events — `stream_options.include_usage` for OpenAI, `get_final_message()` for Anthropic). Don't change this shape without updating both providers and `Router.route_stream`.
+- **Router fallback applies only before any delta is emitted.** Mid-stream errors propagate to the client; we never silently swap providers after the user has seen partial text.
+- **Approval is the only thing the user touches.** The system never auto-approves. Regenerating over an approved letter requires `?force=true` (UI confirms via `confirm()`).
+- **`cover_letter_total_cost_eur` is append-only.** Don't reset it on regenerate or approve. It's the audit trail of how much budget went into this single letter across all its revisions.
+
+When adding a new streaming endpoint or LLM-streaming feature, route through `Router.route_stream` so usage_events get recorded and fallback works. Don't call provider `stream_text` directly from an API handler.
+
 ## Application lifecycle (manual)
 
 `discovered_jobs.application_status` is a free-form-ish enum (`bookmarked`, `applied`, `screening`, `interview`, `offer`, `accepted`, `rejected`, `ghosted`, `withdrawn`, `not_applying`). **Every status change is user-initiated** — there is no automation that reads emails, calendar, Slack, or any external signal to infer state. This is deliberate per spec Section 25.6: manual entry gives ground truth for the eval harness and respects job-search nuance.

@@ -212,6 +212,9 @@ function renderDetail(job) {
     }
   });
 
+  // Cover-letter section
+  wireCoverLetter(node, job);
+
   // Lifecycle section
   const lcStatus = node.querySelector("#lifecycle-status");
   const lcAppliedAt = node.querySelector("#lifecycle-applied-at");
@@ -339,6 +342,237 @@ function renderDetail(job) {
 }
 
 // -- wire events --
+
+function wireCoverLetter(node, job) {
+  const textarea = node.querySelector("#cl-text");
+  const bullets = node.querySelector("#cl-bullets");
+  const stateP = node.querySelector(".cl-state-pill");
+  const costEl = node.querySelector(".cl-cost");
+  const statusEl = node.querySelector(".cl-status");
+  const btnGen = node.querySelector('[data-action="cl-generate"]');
+  const btnRegen = node.querySelector('[data-action="cl-regenerate"]');
+  const btnSave = node.querySelector('[data-action="cl-save"]');
+  const btnApprove = node.querySelector('[data-action="cl-approve"]');
+  const btnUnapprove = node.querySelector('[data-action="cl-unapprove"]');
+
+  let approved = !!job.cover_letter_approved;
+  let generations = job.cover_letter_generations || 0;
+  let cumulativeCost = job.cover_letter_total_cost_eur || 0;
+
+  function renderBullets(list) {
+    if (!list || list.length === 0) {
+      bullets.innerHTML = '<li class="muted small empty-row">No bullets yet.</li>';
+      return;
+    }
+    bullets.innerHTML = list.map((b) => `<li>${escapeHtml(b)}</li>`).join("");
+  }
+
+  function fmtCost(eur) {
+    return new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency: "EUR",
+      minimumFractionDigits: eur < 1 ? 4 : 2,
+      maximumFractionDigits: 4,
+    }).format(Number(eur || 0));
+  }
+
+  function setState(state, label) {
+    stateP.dataset.state = state || "";
+    stateP.textContent = label;
+  }
+
+  function refreshCost() {
+    if (generations > 0) {
+      costEl.textContent = `${generations} generation${generations === 1 ? "" : "s"} · ${fmtCost(
+        cumulativeCost,
+      )} total`;
+    } else {
+      costEl.textContent = "";
+    }
+  }
+
+  function setStatus(text, kind) {
+    statusEl.textContent = text || "";
+    statusEl.className = `cl-status muted small ${kind || ""}`;
+  }
+
+  function reflectApproved() {
+    btnApprove.disabled = approved;
+    btnUnapprove.disabled = !approved;
+    if (approved) setState("approved", "Approved");
+    else if (textarea.value.trim()) setState("draft", "Draft saved");
+    else setState("", "No draft yet");
+  }
+
+  // Initial state from the job payload
+  textarea.value = job.cover_letter || "";
+  renderBullets(job.cover_letter_bullets);
+  refreshCost();
+  reflectApproved();
+
+  async function streamGenerate({ force = false } = {}) {
+    if (!force && approved) {
+      if (!confirm("This cover letter is already approved. Overwrite the draft?")) return;
+      force = true;
+    }
+    btnGen.disabled = true;
+    btnRegen.disabled = true;
+    btnSave.disabled = true;
+    btnApprove.disabled = true;
+    textarea.disabled = true;
+    textarea.value = "";
+    renderBullets(null);
+    setState("streaming", "Streaming…");
+    setStatus("Connecting to generator…");
+
+    const url = `/api/jobs/${job.id}/generate${force ? "?force=true" : ""}`;
+    let response;
+    try {
+      response = await fetch(url, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
+      });
+    } catch (e) {
+      setState("error", "Failed");
+      setStatus(`Network error: ${e.message}`, "err");
+      finishGenerate();
+      return;
+    }
+    if (!response.ok) {
+      let detail = `HTTP ${response.status}`;
+      try {
+        const body = await response.json();
+        if (body.detail) detail = body.detail;
+      } catch { /* not json */ }
+      setState("error", "Failed");
+      setStatus(detail, "err");
+      finishGenerate();
+      return;
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let currentEvent = "message";
+    let plainText = "";
+
+    try {
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        let idx;
+        while ((idx = buffer.indexOf("\n\n")) !== -1) {
+          const raw = buffer.slice(0, idx);
+          buffer = buffer.slice(idx + 2);
+          currentEvent = "message";
+          let dataStr = "";
+          for (const line of raw.split("\n")) {
+            if (line.startsWith("event:")) currentEvent = line.slice(6).trim();
+            else if (line.startsWith("data:")) dataStr += line.slice(5).trim();
+          }
+          if (!dataStr) continue;
+          let payload = null;
+          try { payload = JSON.parse(dataStr); } catch { /* not json */ }
+          if (!payload) continue;
+
+          if (currentEvent === "meta") {
+            setStatus(`Streaming via ${payload.model}…`);
+          } else if (currentEvent === "delta") {
+            plainText += payload.text;
+            // While streaming, show raw text (we don't know if it'll be JSON
+            // until the end). Cheap heuristic: try to extract the cover_letter
+            // field once we see a closing brace at the end.
+            textarea.value = plainText;
+            textarea.scrollTop = textarea.scrollHeight;
+          } else if (currentEvent === "final") {
+            textarea.value = payload.full_text || plainText;
+            renderBullets(payload.bullets);
+            generations = payload.generations;
+            cumulativeCost = payload.total_cost_eur;
+            refreshCost();
+            approved = false;
+            setState("draft", "Draft (unsaved)");
+            setStatus(
+              `Done. ${payload.prompt_tokens + payload.completion_tokens} tokens · ${fmtCost(payload.cost_eur)} this run.`,
+              "ok",
+            );
+          } else if (currentEvent === "error") {
+            setState("error", "Failed");
+            setStatus(payload.detail || "Unknown error", "err");
+          }
+        }
+      }
+    } catch (e) {
+      setState("error", "Failed");
+      setStatus(`Stream error: ${e.message}`, "err");
+    } finally {
+      finishGenerate();
+    }
+  }
+
+  function finishGenerate() {
+    btnGen.disabled = false;
+    btnRegen.disabled = !textarea.value;
+    btnSave.disabled = false;
+    btnApprove.disabled = approved;
+    textarea.disabled = false;
+  }
+
+  async function save({ approve = false }) {
+    const text = textarea.value.trim();
+    if (!text) {
+      setStatus("Cover letter is empty.", "err");
+      return;
+    }
+    btnSave.disabled = true;
+    btnApprove.disabled = true;
+    setStatus(approve ? "Approving…" : "Saving draft…");
+    try {
+      const r = await api(`/api/jobs/${job.id}/cover-letter`, {
+        method: "PUT",
+        body: JSON.stringify({
+          cover_letter: text,
+          approved,
+        }),
+      });
+      approved = r.approved;
+      setStatus(approve ? "Approved." : "Draft saved.", "ok");
+      reflectApproved();
+    } catch (e) {
+      setStatus(e.message, "err");
+    } finally {
+      btnSave.disabled = false;
+      btnApprove.disabled = approved;
+    }
+  }
+
+  async function unapprove() {
+    btnUnapprove.disabled = true;
+    setStatus("Unapproving…");
+    try {
+      const r = await api(`/api/jobs/${job.id}/cover-letter/unapprove`, { method: "POST" });
+      approved = r.approved;
+      setStatus("Unapproved.", "ok");
+      reflectApproved();
+    } catch (e) {
+      setStatus(e.message, "err");
+    }
+  }
+
+  btnGen.addEventListener("click", () => streamGenerate({}));
+  btnRegen.addEventListener("click", () => streamGenerate({ force: true }));
+  btnSave.addEventListener("click", () => save({ approve: false }));
+  btnApprove.addEventListener("click", () => save({ approve: true }));
+  btnUnapprove.addEventListener("click", () => unapprove());
+
+  // Toggle Regenerate visibility once we have any text
+  textarea.addEventListener("input", () => {
+    btnRegen.disabled = !textarea.value;
+    if (!approved) setState("draft", "Draft (unsaved)");
+  });
+}
 
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"})[c]);

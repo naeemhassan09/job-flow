@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
-from app.llm.types import LLMProvider, LLMRequest, LLMResponse
+from app.llm.types import LLMProvider, LLMRequest, LLMResponse, StreamDelta
 from app.llm.usage import CallContext, get_call_context, record_usage
 
 Task = Literal[
@@ -44,6 +44,53 @@ class Router:
 
     def __init__(self, providers: dict[str, LLMProvider]) -> None:
         self._providers = providers
+
+    @property
+    def providers(self) -> dict[str, LLMProvider]:
+        return self._providers
+
+    async def route_stream(self, task: Task, request: LLMRequest):
+        """Stream a single task. Yields StreamDelta(text=...) for each token
+        batch, then a terminal LLMResponse.
+
+        Fallback: if the default provider raises BEFORE emitting any deltas
+        (e.g. auth failure surfaces during stream initialisation), we silently
+        retry on the fallback provider. Once any delta has been yielded we
+        can't unwind cleanly, so an error mid-stream propagates to the caller
+        and the UI surfaces the failure.
+        """
+        default_provider, default_model, fallback_provider, fallback_model = await _resolve_route(task)
+        if request is None:
+            request = LLMRequest(model=default_model, system="", messages=[])
+        ctx = _ctx_for_task(task)
+
+        emitted_any = False
+        final: LLMResponse | None = None
+        try:
+            provider = self._providers[default_provider]
+            async for event in provider.stream_text(
+                request.model_copy(update={"model": default_model})
+            ):
+                if isinstance(event, LLMResponse):
+                    final = event
+                    break
+                emitted_any = True
+                yield event
+        except Exception:
+            if emitted_any:
+                raise  # mid-stream, can't unwind
+            provider = self._providers[fallback_provider]
+            async for event in provider.stream_text(
+                request.model_copy(update={"model": fallback_model})
+            ):
+                if isinstance(event, LLMResponse):
+                    final = event
+                    break
+                yield event
+
+        if final is not None:
+            await record_usage(final, ctx=ctx)
+            yield final
 
     async def route(self, task: Task, request: LLMRequest | None = None, **kwargs: object) -> LLMResponse:
         default_provider, default_model, fallback_provider, fallback_model = await _resolve_route(task)

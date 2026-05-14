@@ -152,6 +152,39 @@
           </details>
         </section>
 
+        <section class="cover-letter">
+          <header class="cover-letter-head">
+            <h3>Cover letter</h3>
+            <div class="cover-letter-meta muted small">
+              <span class="cl-state-pill" data-state="">No draft yet</span>
+              <span class="cl-cost"></span>
+            </div>
+          </header>
+          <p class="muted small">
+            Click <em>Generate</em> to stream a fresh draft from the matcher's score
+            context. Edit inline, then save as a draft or approve.
+          </p>
+          <textarea
+            id="cl-text"
+            rows="14"
+            placeholder="Generate a draft to see streamed output here, then edit before saving."
+          ></textarea>
+          <div class="cl-bullets-block">
+            <h4>Tailored bullets</h4>
+            <ul id="cl-bullets" class="cl-bullets-list">
+              <li class="muted small empty-row">No bullets yet.</li>
+            </ul>
+          </div>
+          <div class="cover-letter-actions">
+            <button class="primary" data-action="cl-generate">Generate</button>
+            <button class="ghost" data-action="cl-regenerate" disabled>Regenerate</button>
+            <button class="ghost" data-action="cl-save">Save draft</button>
+            <button class="primary" data-action="cl-approve">Approve &amp; save</button>
+            <button class="ghost" data-action="cl-unapprove" disabled>Unapprove</button>
+            <span class="cl-status muted small"></span>
+          </div>
+        </section>
+
         <section class="feedback">
           <h3>Your feedback</h3>
           <p class="muted small">

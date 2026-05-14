@@ -180,6 +180,15 @@ async def get_job(
         ),
         "status_history": row.status_history or [],
         "application_id": str(row.application_id) if row.application_id else None,
+        "cover_letter": row.cover_letter,
+        "cover_letter_bullets": list(row.cover_letter_bullets or []),
+        "cover_letter_model": row.cover_letter_model,
+        "cover_letter_generated_at": (
+            row.cover_letter_generated_at.isoformat() if row.cover_letter_generated_at else None
+        ),
+        "cover_letter_approved": bool(row.cover_letter_approved),
+        "cover_letter_generations": int(row.cover_letter_generations or 0),
+        "cover_letter_total_cost_eur": float(row.cover_letter_total_cost_eur or 0),
     }
 
 

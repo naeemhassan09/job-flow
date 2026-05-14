@@ -36,7 +36,20 @@ class LLMResponse(BaseModel):
     raw_finish_reason: str = "stop"
 
 
+class StreamDelta(BaseModel):
+    """One token-batch yielded by a streaming LLM call."""
+
+    text: str
+
+
 class LLMProvider(Protocol):
     name: str
 
     async def generate(self, request: LLMRequest) -> LLMResponse: ...
+
+    async def stream_text(self, request: LLMRequest):  # AsyncIterator
+        """Yield StreamDelta(text=...) for each token batch, then finish with a
+        single LLMResponse carrying real usage stats. The router awaits the
+        final yield to record llm_usage_events."""
+        ...
+        yield StreamDelta(text="")  # pragma: no cover — Protocol contract only

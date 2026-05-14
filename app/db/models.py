@@ -186,3 +186,19 @@ class DiscoveredJob(Base):
     application_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("applications.id"), index=True
     )
+
+    # Cover-letter draft + approval state. Generated inline via the SSE endpoint
+    # POST /api/jobs/{id}/generate, edited in the UI textarea, saved via PUT to
+    # /api/jobs/{id}/cover-letter. cover_letter_approved=True means the user
+    # signed off; future regenerations require a confirm to overwrite.
+    cover_letter: Mapped[str | None] = mapped_column(Text)
+    cover_letter_bullets: Mapped[list[Any]] = mapped_column(JSONB, default=list)
+    cover_letter_model: Mapped[str | None] = mapped_column(String(64))
+    cover_letter_generated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True)
+    )
+    cover_letter_approved: Mapped[bool] = mapped_column(Boolean, default=False)
+    cover_letter_generations: Mapped[int] = mapped_column(Integer, default=0)
+    cover_letter_total_cost_eur: Mapped[Decimal] = mapped_column(
+        Numeric(10, 6), default=Decimal("0")
+    )

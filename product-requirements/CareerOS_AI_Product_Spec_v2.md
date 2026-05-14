@@ -863,3 +863,52 @@ GET /api/stats/dashboard
 **Stale follow-ups** = applications in `applied` or `screening` whose `status_updated_at < now - 14d`. Surfaces in the dashboard "Stale follow-ups" panel; links back to the inbox row.
 
 **Out of scope (explicit)**: no automatic state inference from email/calendar/Slack; no scraping of recruiter messages; no Slack/email reminders on stale follow-ups (UI-only nudge for V1).
+
+### 25.7 Inline streaming cover-letter generation (2026-05-14)
+
+Realises Section 14's streaming endpoint as the daily-use payoff. Apply-band jobs (or any job with `?force=true`) get a cover letter drafted into the inbox detail panel via server-sent events, edited inline, then saved as draft or approved.
+
+**Schema** (migration `0006_cover_letter`): new columns on `discovered_jobs`:
+
+| Column | Meaning |
+|---|---|
+| `cover_letter TEXT NULL` | Current draft text. |
+| `cover_letter_bullets JSONB NOT NULL DEFAULT '[]'` | Tailored CV bullets. |
+| `cover_letter_model VARCHAR(64) NULL` | Provider/model that produced this draft (e.g. `openai/gpt-4.1-mini`). |
+| `cover_letter_generated_at TIMESTAMPTZ NULL` | Last generation timestamp. |
+| `cover_letter_approved BOOL NOT NULL DEFAULT false` | User-signed-off flag. Regeneration over an approved letter requires `?force=true`. |
+| `cover_letter_generations INT NOT NULL DEFAULT 0` | Counter for cost-awareness ("you've regenerated this 4 times for €0.012"). |
+| `cover_letter_total_cost_eur NUMERIC(10,6) NOT NULL DEFAULT 0` | Sum of `estimated_cost_eur` across all generations on this row. |
+
+**Provider streaming contract** (`app.llm.types.StreamDelta`): every provider exposes `stream_text(request)` as an async iterator that yields `StreamDelta(text=...)` for each token batch and terminates with a single `LLMResponse` carrying real usage stats. Both `OpenAIProvider` (using `stream_options.include_usage`) and `AnthropicProvider` (using `client.messages.stream` context manager + `get_final_message()`) implement this.
+
+**Router streaming** (`Router.route_stream`): default-then-fallback behaviour mirrors the non-stream path, but **only** falls back if the default provider raises *before emitting any delta*. Mid-stream errors propagate to the client — partial-then-restart UX is worse than honest failure.
+
+**SSE endpoint** `POST /api/jobs/{id}/generate?force=true|false`:
+
+```
+event: meta    data: {model, generations}
+event: delta   data: {text}          ← repeated
+event: final   data: {full_text, bullets, model, cost_eur, prompt_tokens, completion_tokens, generations, total_cost_eur}
+event: error   data: {detail}
+```
+
+Preconditions enforced:
+
+- Row must have a `parsed_job` (i.e. been scored). Otherwise 422 "score the job first".
+- Unless `force=true`, `fit_score >= APPLY_BAND_THRESHOLD` (70). Otherwise 422 with the threshold message.
+- Unless `force=true`, `cover_letter_approved` must be false. Otherwise 409.
+
+On the `final` event, the draft is persisted with `approved=false` and the generation counter + cumulative cost are updated. The user signs off via:
+
+```
+PUT  /api/jobs/{id}/cover-letter        {cover_letter, bullets?, approved?}
+POST /api/jobs/{id}/cover-letter/approve
+POST /api/jobs/{id}/cover-letter/unapprove
+```
+
+**UI** (`/ui/`): inbox detail panel gains a Cover letter section with state pill (`No draft yet` / `Streaming…` / `Draft (unsaved)` / `Approved` / `Failed`), editable textarea (live-filled by the SSE stream), bullets list, and Generate / Regenerate / Save draft / Approve & save / Unapprove buttons. The textarea is the canonical source of truth — the user can edit between Generate and Approve.
+
+**Cost discipline**: every regeneration writes a row to `llm_usage_events` (via the existing `record_usage` middleware) and bumps `cover_letter_total_cost_eur`. The Usage page surfaces both. Generations on `bookmarked`/`not_applying` rows require `force=true` so the user can't accidentally burn budget on jobs they've already triaged out.
+
+**Out of scope for V1**: no template versioning per-role (one prompt for all letters); no language switching; no PDF export from the UI (copy/paste is fine); no calendar integration for follow-up reminders.
