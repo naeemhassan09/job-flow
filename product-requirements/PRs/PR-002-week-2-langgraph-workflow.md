@@ -53,7 +53,7 @@ Stateful agentic workflow on top of the week-1 platform primitives. Paste a JD â
 ## How to open the PR
 
 ```
-https://github.com/naeemhassan09/job-flow/pull/new/feat/week-2-langgraph-workflow
+https://github.com/naeemhassan09/CareerOS-AI/pull/new/feat/week-2-langgraph-workflow
 ```
 
 Base = `dev`. Use this file as the body.
