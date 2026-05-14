@@ -24,6 +24,7 @@ Active development on the dev branch; main is the integration branch. The applic
 | Capability | Surface |
 |---|---|
 | Inbox of captured + discovered jobs with per-row scoring, human feedback, **inline streaming cover-letter generation**, and **an agentic research loop that builds a grounded company brief** | `/ui/` |
+| **MCP server** exposing `analyze_jd`, `score_fit`, `generate_cover_letter`, `research_company`, `list_applications` to Claude Desktop | `app/mcp_server.py` · [wiring guide](product-requirements/mcp-server.md) |
 | Pipeline dashboard with response rate, weekly applications, stale follow-ups | `/ui/dashboard.html` |
 | Token + cost telemetry — month-to-date spend, by model, by node, recent calls | `/ui/usage.html` |
 | Settings panel for API keys, per-task model overrides, budget caps, password | `/ui/settings.html` |

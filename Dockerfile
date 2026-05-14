@@ -25,7 +25,8 @@ RUN pip install --upgrade pip \
        "prometheus-client>=0.21" "cryptography>=43" \
        "python-jose[cryptography]>=3.3" "jinja2>=3.1" "sse-starlette>=2.1" \
        "pyyaml>=6.0" "python-multipart>=0.0.20" \
-       "bcrypt>=4.2" "itsdangerous>=2.2"
+       "bcrypt>=4.2" "itsdangerous>=2.2" \
+       "mcp>=1.0"
 
 # Copy source. Compose mounts override these in dev for hot reload.
 COPY app ./app

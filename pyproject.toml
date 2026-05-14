@@ -28,6 +28,7 @@ dependencies = [
     "pyyaml>=6.0",
     "bcrypt>=4.2",
     "itsdangerous>=2.2",
+    "mcp>=1.0",
 ]
 
 [project.optional-dependencies]

@@ -975,3 +975,35 @@ Preconditions: row must have a non-`(unknown)` company name (422 otherwise). No 
 **Cost discipline**: each plan step + the synthesizer write `llm_usage_events` rows via the standard recording middleware. A full research run sits around €0.002–€0.005 on `gpt-4.1-mini` — comparable to one cover-letter generation.
 
 **Out of scope for V1**: no parallel tool dispatch (one tool per iteration keeps the trace human-readable); no robots.txt parsing (we don't crawl, we fetch single URLs the agent explicitly chose); no caching of search results across jobs (Tavily free tier is 1k/month — comfortable headroom); no per-source quality weighting in the synthesizer (it grounds on whatever the agent picked).
+
+### 25.9 MCP server exposing tools to Claude Desktop (2026-05-14)
+
+Realises spec Section 8's MCP server. Five tools over stdio, structured-JSON returns, single-user, sharing the same `settings_store` and `Router` as the HTTP app.
+
+**Entry point** `app/mcp_server.py` is run as a subprocess by the MCP client (Claude Desktop). Tools:
+
+| Tool | Internal call | Returns |
+|---|---|---|
+| `analyze_jd(raw_jd)` | `app.mcp.tool_handlers.analyze_jd` | `{ok, quarantined, parsed_job, cost_eur}` |
+| `score_fit(raw_jd)` | `app.mcp.tool_handlers.score_fit` | `{ok, fit_score, decision, decision_reason, score_breakdown, parsed_job, cost_eur}` |
+| `generate_cover_letter(raw_jd)` | `app.mcp.tool_handlers.generate_cover_letter` | `{ok, fit_score, decision, cover_letter, bullets, cost_eur}` — only generates when matcher returns `apply`; below-threshold use HTTP `?force=true`. |
+| `research_company(company, role?)` | `app.mcp.tool_handlers.research_company` | `{ok, brief, trace, iterations, cost_eur}` — collects the full async-iterator output of the agent loop synchronously since MCP is request/response. |
+| `list_applications(status?, limit?)` | `app.mcp.tool_handlers.list_applications` | `{count, filter, applications[]}` ordered by `scraped_at desc`, lifecycle-filterable. |
+
+**Transport hygiene**:
+
+- All logs go to **stderr** via stdlib `logging.basicConfig(stream=sys.stderr, ...)`. Stdout is the MCP wire format and must stay clean — a single stray `print()` corrupts the JSON-RPC stream and Claude Desktop disconnects.
+- The `Server` is constructed once; `get_context()` is the same `lru_cache`'d singleton the HTTP app uses, so model overrides + API keys edited via the Settings UI take effect on the next MCP call too.
+- Tool handler exceptions are caught at the call_tool boundary and surfaced as `{ok: false, detail: ...}` — never propagated to the MCP framework (which would tear down the session).
+
+**Auth model**: stdio MCP doesn't ride on the HTTP session cookie. The OS process boundary IS the auth — only the user who can spawn the Python interpreter under their account can invoke the tools. The MCP server is **read-only on the lifecycle**: no tool can update status, approve a letter, or delete a job. Mutations stay in the HTTP API behind the session-cookie gate.
+
+**Cost tracking**: every tool call writes `llm_usage_events` rows via the shared `record_usage` middleware, tagged `node_name = "mcp.<tool>"` so they're distinguishable from inbox-driven runs on the Usage page.
+
+**Wiring**: see [product-requirements/mcp-server.md](mcp-server.md) for the Claude Desktop config snippet (native venv path recommended; in-container via `docker compose exec` documented as the alternative).
+
+**Out of scope for V1**:
+- No mutation tools (`set_status`, `approve_letter`, `delete_job`). Anything that changes server state stays HTTP-only — the audit trail is clearer that way.
+- No streaming tools. MCP doesn't support partial responses well; `research_company` collects the loop synchronously. For live streaming UX use the HTTP SSE endpoints.
+- No prompt servers. The MCP `prompts` capability isn't exposed — the prompts live in `app/prompts/` versioned by the spec, not duplicated over the MCP boundary.
+- No tool-defined sampling. MCP supports clients sampling from a server's preferred model; we let Claude Desktop pick its own model and only return data.

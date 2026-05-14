@@ -103,6 +103,18 @@ Hard invariants — break these and the loop becomes either unsafe or non-agenti
 
 When adding a new tool: implement it in `app/research/tools.py`, return a dataclass with `error: str | None`, register the action in `app/prompts/research_plan.md`'s system prompt, then handle the new action branch in `agent.run_research`. Don't bypass the router for streaming; we want usage events recorded.
 
+## MCP server (stdio, structured-JSON returns)
+
+`app/mcp_server.py` exposes the workflow as five tools that Claude Desktop calls over stdio. Spec Section 25.9. See [product-requirements/mcp-server.md](product-requirements/mcp-server.md) for the wiring guide.
+
+Three rules when touching MCP code:
+
+1. **Never `print()` to stdout from anywhere reachable on the MCP code path.** Stdout is the JSON-RPC transport. All logs go to stderr via `logging.basicConfig(stream=sys.stderr, ...)`. Don't import or activate the HTTP app's structlog config in the MCP server.
+2. **Tool handlers must never raise out to the MCP framework.** Catch at the `call_tool` boundary in `app/mcp_server.py` and return `{ok: false, detail: ...}`. A raised exception ends the Claude Desktop session.
+3. **MCP tools are read-only on the lifecycle.** Don't add tools that change `application_status`, approve letters, or delete jobs. Mutations stay HTTP-only behind the session-cookie gate — clearer audit trail, single source of truth for state changes.
+
+When adding a tool: write the handler in `app/mcp/tool_handlers.py` (no FastAPI, no Pydantic response models — return a plain dict). Add the `types.Tool(...)` entry to `list_tools()` in `app/mcp_server.py`. Wire dispatch in `call_tool`. Update `tests/test_mcp_tools.py` to lock in the new entry so accidental removals fail loudly.
+
 ## Cover-letter generation (streaming, draft, approve)
 
 Cover letters for discovered jobs are drafted inline via the SSE endpoint `POST /api/jobs/{id}/generate`. Read [spec section 25.7](product-requirements/CareerOS_AI_Product_Spec_v2.md) before changing anything in this area.
